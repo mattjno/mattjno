@@ -1,0 +1,19 @@
+{
+  "name": "mattjno-site",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "manifest": "node scripts/generate-manifests.mjs"
+  },
+  "dependencies": {
+    "next": "14.1.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "image-size": "^1.1.1"
+  }
+}
