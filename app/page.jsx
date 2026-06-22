@@ -253,7 +253,7 @@ export default function Home() {
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={labelStyle}>Message</label>
-                <input name="message" required placeholder="Une question, un projet, une collaboration" style={inputStyle} />
+                <textarea name="message" required rows={4} placeholder="Une question, un projet, une collaboration" style={{ ...inputStyle, resize: "vertical" }} />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <button type="submit" disabled={cstatus === "sending"} style={{ background: INK, color: BG, border: "none", fontFamily: MONO, fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase", padding: "14px 32px", cursor: "pointer", borderRadius: 1, opacity: cstatus === "sending" ? 0.5 : 1 }}>
