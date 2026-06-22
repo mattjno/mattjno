@@ -100,7 +100,7 @@ export default function Home() {
   const photoCount = albums.reduce((n, a) => n + (a.count || a.photos.length), 0);
 
   const present = Array.from(new Set(albums.map((a) => a.sport)));
-  const sportList = ["Tous"].concat(Array.from(new Set(present.concat(["Football", "Basket", "Handball"]))));
+  const sportList = ["Tous"].concat(Array.from(new Set(["Football"].concat(present))));
   const filtered = filter === "Tous" ? albums : albums.filter((a) => a.sport === filter);
 
   const reveal = (key) => ({
