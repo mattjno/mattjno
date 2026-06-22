@@ -28,6 +28,7 @@ export default function Home() {
   const [lb, setLb] = useState(null);
   const [narrow, setNarrow] = useState(false);
   const [cstatus, setCstatus] = useState("");
+  const [darkHeader, setDarkHeader] = useState(true);
   const revealed = useRef(new Set());
 
   // Données
@@ -45,6 +46,19 @@ export default function Home() {
     window.addEventListener("resize", f);
     return () => window.removeEventListener("resize", f);
   }, []);
+
+  // En-tete : noir sur la nuee, creme des qu'on entre dans les albums
+  useEffect(() => {
+    const f = () => {
+      const el = document.getElementById("selection");
+      if (!el) return;
+      setDarkHeader(el.getBoundingClientRect().bottom > 70);
+    };
+    f();
+    window.addEventListener("scroll", f, { passive: true });
+    window.addEventListener("resize", f);
+    return () => { window.removeEventListener("scroll", f); window.removeEventListener("resize", f); };
+  }, [data]);
 
   // Apparition au scroll
   useEffect(() => {
@@ -112,11 +126,11 @@ export default function Home() {
     <div id="top" style={{ minHeight: "100vh", background: BG, color: INK, fontFamily: SANS }}>
 
       {/* Header */}
-      <header style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "15px clamp(20px,4vw,60px)", background: "rgba(236,232,224,0.82)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderBottom: `1px solid ${FAINT}` }}>
-        <a href="#top" style={{ fontFamily: SANS, fontWeight: 600, fontSize: 14, letterSpacing: "0.26em", textTransform: "uppercase", color: INK, textDecoration: "none" }}>MATT.JNO</a>
+      <header style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "15px clamp(20px,4vw,60px)", background: darkHeader ? "rgba(10,10,10,0.55)" : "rgba(236,232,224,0.82)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderBottom: `1px solid ${darkHeader ? "rgba(244,239,230,0.14)" : FAINT}`, transition: "background .5s ease, border-color .5s ease" }}>
+        <a href="#top" style={{ fontFamily: SANS, fontWeight: 600, fontSize: 14, letterSpacing: "0.26em", textTransform: "uppercase", color: darkHeader ? "#f4efe6" : INK, textDecoration: "none", transition: "color .5s ease" }}>MATT.JNO</a>
         <nav style={{ display: "flex", gap: "clamp(18px,3vw,38px)" }}>
           {[["#selection", "Sélection"], ["#matchs", "Matchs"], ["#contact", "Contact"]].map(([href, label]) => (
-            <a key={href} href={href} style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: SOFT, textDecoration: "none" }}>{label}</a>
+            <a key={href} href={href} style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: darkHeader ? "rgba(244,239,230,0.7)" : SOFT, textDecoration: "none", transition: "color .5s ease" }}>{label}</a>
           ))}
         </nav>
       </header>
