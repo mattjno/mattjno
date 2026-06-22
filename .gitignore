@@ -1,0 +1,13 @@
+# Dépendances
+node_modules/
+
+# Build Next.js
+.next/
+out/
+
+# Variables d'environnement
+.env
+.env*.local
+
+# Système
+.DS_Store
