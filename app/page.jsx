@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import NueeHero from "./NueeHero";
 
 /* ----------------------------------------------------------------------------
    MATT.JNO — page unique « Match Day »
    Lit /site.json (généré par scripts/generate-manifests.mjs depuis R2).
-   - Sélection : grand visuel cinématique en fondu enchaîné (re-mélangé à chaque visite)
-   - Matchs    : filtre par sport + galeries mosaïque, lightbox
+   - Arrivée : <NueeHero/> — mur de photos « nuée » qui s'accélère au scroll
+   - Matchs  : filtre par sport + galeries mosaïque, lightbox
 ---------------------------------------------------------------------------- */
 
 const BG = "#ece8e0", INK = "#13110f", SOFT = "#7c756a", FAINT = "rgba(19,17,15,0.15)", PANEL = "#e1dccf";
@@ -20,16 +21,10 @@ function fmtDate(d) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || "");
   return m ? `${m[3]}.${m[2]}.${m[1]}` : (d || "");
 }
-function shuffle(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; }
-  return a;
-}
 
 export default function Home() {
   const [data, setData] = useState(null);
   const [filter, setFilter] = useState("Tous");
-  const [heroIdx, setHeroIdx] = useState(0);
   const [lb, setLb] = useState(null);
   const [narrow, setNarrow] = useState(false);
   const [cstatus, setCstatus] = useState("");
@@ -39,14 +34,8 @@ export default function Home() {
   useEffect(() => {
     fetch("/site.json")
       .then((r) => r.json())
-      .then((j) => {
-        const albums = j.albums || [];
-        const pool = albums.reduce((acc, a) => acc.concat(a.photos || []), []);
-        const fallback = pool.map((p) => ({ src: p.src, w: p.w, h: p.h }));
-        const selection = (j.selection && j.selection.length ? j.selection : shuffle(fallback)).slice(0, 18);
-        setData({ albums, selection: shuffle(selection).slice(0, 18) });
-      })
-      .catch(() => setData({ albums: [], selection: [] }));
+      .then((j) => setData({ albums: j.albums || [] }))
+      .catch(() => setData({ albums: [] }));
   }, []);
 
   // Largeur écran
@@ -56,13 +45,6 @@ export default function Home() {
     window.addEventListener("resize", f);
     return () => window.removeEventListener("resize", f);
   }, []);
-
-  // Diaporama auto de la sélection
-  useEffect(() => {
-    if (!data || data.selection.length < 2) return;
-    const id = setInterval(() => setHeroIdx((i) => (i + 1) % data.selection.length), 4200);
-    return () => clearInterval(id);
-  }, [data]);
 
   // Apparition au scroll
   useEffect(() => {
@@ -96,7 +78,6 @@ export default function Home() {
   }, [lb]);
 
   const albums = (data && data.albums) || [];
-  const selection = (data && data.selection) || [];
   const photoCount = albums.reduce((n, a) => n + (a.count || a.photos.length), 0);
 
   const present = Array.from(new Set(albums.map((a) => a.sport)));
@@ -109,7 +90,6 @@ export default function Home() {
     transition: TR,
   });
 
-  const hi = selection.length ? heroIdx % selection.length : 0;
   const openLb = (list, idx) => setLb({ list, idx });
   const onImgError = (e) => { e.currentTarget.style.visibility = "hidden"; };
   const onImgLoad = (e) => { e.currentTarget.style.opacity = "1"; };
@@ -141,35 +121,8 @@ export default function Home() {
         </nav>
       </header>
 
-      {/* Hero */}
-      <section style={{ padding: "clamp(48px,9vw,120px) clamp(20px,4vw,60px) clamp(26px,4vw,52px)" }}>
-        <div style={{ fontFamily: MONO, fontSize: 12, letterSpacing: "0.22em", textTransform: "uppercase", color: SOFT, marginBottom: "clamp(16px,3vw,28px)" }}>Photographe de sport</div>
-        <h1 style={{ fontFamily: DISPLAY, fontWeight: 400, fontSize: "clamp(74px,15vw,248px)", lineHeight: 0.82, textTransform: "uppercase", margin: 0, color: INK }}>Matt Jno</h1>
-        <div style={{ display: "flex", gap: "clamp(18px,4vw,60px)", flexWrap: "wrap", alignItems: "baseline", marginTop: "clamp(20px,3vw,38px)" }}>
-          <p style={{ fontFamily: SANS, fontSize: "clamp(15px,1.4vw,19px)", lineHeight: 1.5, color: INK, maxWidth: "46ch", margin: 0, flex: "1 1 320px" }}>
-            Photographe de football : l'émotion, le duel et le geste décisif, saisis au plus près du terrain.
-          </p>
-          <div style={{ fontFamily: MONO, fontSize: 12, letterSpacing: "0.12em", textTransform: "uppercase", color: SOFT, whiteSpace: "nowrap" }}>{albums.length} matchs · {photoCount} photos</div>
-        </div>
-      </section>
-
-      {/* Sélection — diaporama cinématique */}
-      <section id="selection" style={{ scrollMarginTop: 78, paddingTop: "clamp(28px,5vw,64px)" }}>
-        <div data-key="sel-h" style={reveal("sel-h")}>
-          <div onClick={() => selection.length && openLb(selection, hi)} role="button" aria-label="Voir la sélection"
-            style={{ position: "relative", width: "100%", height: "clamp(420px,56vh,600px)", overflow: "hidden", background: PANEL, cursor: "pointer" }}>
-            {selection.map((p, j) => (
-              <img key={j} src={p.src} alt="MATT.JNO — sélection" loading="lazy" onError={onImgError}
-                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: j === hi ? 1 : 0, transition: "opacity 1.5s ease", willChange: "opacity", animation: j === hi ? "kb 7s ease-out forwards" : "none" }} />
-            ))}
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.38), rgba(0,0,0,0) 42%)", pointerEvents: "none" }} />
-            <div style={{ position: "absolute", top: "clamp(16px,2.5vw,30px)", left: "clamp(18px,3vw,44px)", fontFamily: DISPLAY, textTransform: "uppercase", fontSize: "clamp(30px,4.5vw,68px)", lineHeight: 1, letterSpacing: "-0.01em", color: "#fff", pointerEvents: "none" }}>Sélection</div>
-            <div style={{ position: "absolute", bottom: "clamp(16px,2.5vw,28px)", right: "clamp(18px,3vw,44px)", fontFamily: MONO, fontSize: 12, letterSpacing: "0.18em", color: "#fff", opacity: 0.85, pointerEvents: "none" }}>
-              {selection.length ? `${String(hi + 1).padStart(2, "0")} / ${String(selection.length).padStart(2, "0")}` : ""}
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Arrivée — nuée de photos (remplace l'ancien hero + la sélection) */}
+      <NueeHero />
 
       {/* Matchs */}
       <div id="matchs" style={{ scrollMarginTop: 78, paddingTop: "clamp(40px,7vw,96px)" }}>
