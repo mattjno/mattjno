@@ -126,7 +126,7 @@ export default function Home() {
     <div id="top" style={{ minHeight: "100vh", background: BG, color: INK, fontFamily: SANS }}>
 
       {/* Header */}
-      <header style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "15px clamp(20px,4vw,60px)", background: darkHeader ? "rgba(10,10,10,0.55)" : "rgba(236,232,224,0.82)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderBottom: `1px solid ${darkHeader ? "rgba(244,239,230,0.14)" : FAINT}`, transition: "background .5s ease, border-color .5s ease" }}>
+      <header style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "15px clamp(20px,4vw,60px)", background: darkHeader ? "#0a0a0a" : "rgba(236,232,224,0.82)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderBottom: `1px solid ${darkHeader ? "rgba(244,239,230,0.14)" : FAINT}`, transition: "background .5s ease, border-color .5s ease" }}>
         <a href="#top" style={{ fontFamily: SANS, fontWeight: 600, fontSize: 14, letterSpacing: "0.26em", textTransform: "uppercase", color: darkHeader ? "#f4efe6" : INK, textDecoration: "none", transition: "color .5s ease" }}>MATT.JNO</a>
         <nav style={{ display: "flex", gap: "clamp(18px,3vw,38px)" }}>
           {[["#selection", "Sélection"], ["#matchs", "Matchs"], ["#contact", "Contact"]].map(([href, label]) => (
