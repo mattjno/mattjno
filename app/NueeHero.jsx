@@ -155,6 +155,7 @@ export default function NueeHero() {
 
         <div ref={nueeRef} style={{ position: "absolute", inset: 0, zIndex: 1 }}>
           {tiles.map((t, i) => (
+            // div EXTÉRIEURE : pilotée par le JS (explosion / flou / opacité)
             <div
               key={i}
               ref={(el) => { nodes.current[i] = el; }}
@@ -162,12 +163,18 @@ export default function NueeHero() {
                 position: "absolute", left: t.left.toFixed(2) + "%", top: t.top.toFixed(2) + "%",
                 width: t.sw.toFixed(2) + "vmin", height: t.sh.toFixed(2) + "vmin", zIndex: t.z,
                 transform: "translate(-50%,-50%)", willChange: "transform, opacity, filter",
-                borderRadius: 2, overflow: "hidden",
-                boxShadow: "0 14px 38px -22px rgba(0,0,0,.85)",
-                backgroundImage: `url("${t.src}")`, backgroundSize: "cover", backgroundPosition: "center", backgroundColor: "#15140f",
-                animation: `mjpop .8s cubic-bezier(.34,1.56,.64,1) ${t.delay.toFixed(2)}s both`,
               }}
-            />
+            >
+              {/* div INTÉRIEURE : animation d'apparition (ne touche PAS au transform du parent) */}
+              <div
+                style={{
+                  width: "100%", height: "100%", borderRadius: 2, overflow: "hidden",
+                  backgroundImage: `url("${t.src}")`, backgroundSize: "cover", backgroundPosition: "center", backgroundColor: "#15140f",
+                  boxShadow: "0 14px 38px -22px rgba(0,0,0,.85)",
+                  animation: `mjpop .8s cubic-bezier(.34,1.56,.64,1) ${t.delay.toFixed(2)}s both`,
+                }}
+              />
+            </div>
           ))}
         </div>
 
