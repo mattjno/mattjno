@@ -193,7 +193,7 @@ export default function NueeHero() {
 
         <div style={{ position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
           <h1 style={{ fontFamily: "'Anton', Impact, sans-serif", fontWeight: 400, fontSize: "clamp(40px,7vw,120px)", lineHeight: 0.82, textTransform: "uppercase", letterSpacing: "0.02em", margin: 0, color: "#f4efe6", textShadow: "0 6px 50px rgba(0,0,0,.85)" }}>{LOGO}</h1>
-          <div style={{ marginTop: 16, fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: "clamp(11px,1.4vw,15px)", letterSpacing: "0.42em", textTransform: "uppercase", color: "rgba(244,239,230,.82)", textShadow: "0 2px 14px rgba(0,0,0,.7)" }}>Sport Photographer</div>
+          <div style={{ marginTop: 16, fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: "clamp(11px,1.4vw,15px)", letterSpacing: "0.42em", textTransform: "uppercase", color: "rgba(244,239,230,.82)", textShadow: "0 2px 14px rgba(0,0,0,.7)" }}>Sports Photographer</div>
           <div ref={subRef} style={{ marginTop: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
             <div style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 13, letterSpacing: "0.34em", textTransform: "uppercase", color: "rgba(244,239,230,.88)", textShadow: "0 2px 14px rgba(0,0,0,.7)" }}>{SUBTITLE}</div>
             <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 16, color: ACCENT, animation: "mjnudge 2s ease-in-out infinite" }}>↓</div>

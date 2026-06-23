@@ -16,7 +16,7 @@ const SANS = "'Archivo', system-ui, sans-serif";
 const MONO = "'JetBrains Mono', ui-monospace, monospace";
 const GAP = "12px", COLW = "248px";
 const TR = "opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1)";
-const INSTAGRAM = "https://instagram.com/mattjno"; // ← remplace par ton vrai compte Instagram
+const INSTAGRAM = "https://instagram.com/matt.jno"; // ← ton compte Instagram
 
 function fmtDate(d) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || "");
@@ -204,7 +204,8 @@ export default function Home() {
 
       {/* Contact */}
       <footer id="contact" style={{ padding: "clamp(60px,9vw,128px) clamp(20px,4vw,60px) clamp(40px,6vw,70px)", borderTop: `1px solid ${FAINT}`, marginTop: "clamp(40px,7vw,90px)" }}>
-        <div style={{ maxWidth: 1000 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "clamp(36px,6vw,96px)", flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 520px", minWidth: 0, maxWidth: 1000 }}>
           <div style={{ fontFamily: MONO, fontSize: 12, letterSpacing: "0.2em", textTransform: "uppercase", color: SOFT, marginBottom: 10 }}>Contact</div>
           <h2 style={{ fontFamily: DISPLAY, fontWeight: 400, fontSize: "clamp(40px,7.5vw,104px)", lineHeight: 0.85, textTransform: "uppercase", margin: "0 0 clamp(26px,4vw,46px)", color: INK }}>Travaillons ensemble.</h2>
           {cstatus === "ok" ? (
@@ -231,7 +232,9 @@ export default function Home() {
               </div>
             </form>
           )}
-          <div style={{ marginTop: "clamp(46px,7vw,84px)", paddingTop: "clamp(34px,5vw,52px)", borderTop: `1px solid ${FAINT}`, display: "flex", alignItems: "center", gap: "clamp(20px,3vw,36px)", flexWrap: "wrap" }}>
+          </div>
+
+          <div style={{ flex: "0 0 auto", display: "flex", alignItems: "flex-start", gap: "clamp(18px,2vw,26px)", flexWrap: "wrap" }}>
             <a href={INSTAGRAM} target="_blank" rel="noopener noreferrer" aria-label="Instagram" style={{ display: "block", lineHeight: 0, padding: 12, background: "#fff", border: `1px solid ${FAINT}`, borderRadius: 2 }}>
               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=0&qzone=0&color=13110f&bgcolor=ffffff&data=${encodeURIComponent(INSTAGRAM)}`} alt="QR code Instagram" width={118} height={118} style={{ width: 118, height: 118, display: "block" }} />
             </a>
@@ -241,12 +244,12 @@ export default function Home() {
               <div style={{ fontFamily: SANS, fontSize: 14, color: SOFT, marginTop: 12, maxWidth: "34ch", lineHeight: 1.5 }}>Scanne le code ou clique — le terrain au quotidien, en stories et en grand format.</div>
             </div>
           </div>
+          </div>
 
           <div style={{ marginTop: "clamp(50px,8vw,90px)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
             <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: SOFT }}>© MATT.JNO — 2026</span>
             <a href="#top" style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: SOFT, textDecoration: "none" }}>Haut de page ↑</a>
           </div>
-        </div>
       </footer>
 
       {/* Lightbox */}
