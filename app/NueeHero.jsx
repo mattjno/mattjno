@@ -25,8 +25,8 @@ const LOGO = "Matt Jno";       // texte du logo
 const SUBTITLE = "Scroll to explore";
 const HERO_VH = 135;           // hauteur du hero (↓ = la page du dessous remonte + vite)
 
-const thumb = (src) =>
-  `https://images.weserv.nl/?url=${encodeURIComponent(src.replace(/^https?:\/\//, ""))}&w=${TILE_W}&output=webp&q=72`;
+const thumb = (src, w = TILE_W) =>
+  `https://images.weserv.nl/?url=${encodeURIComponent(src.replace(/^https?:\/\//, ""))}&w=${w}&output=webp&q=72`;
 
 function makeRng(seed) {
   return () => {
@@ -47,6 +47,7 @@ export default function NueeHero() {
   const P = useRef(0);
   const MX = useRef(0);
   const MY = useRef(0);
+  const vis = useRef(true);   // hero visible à l'écran ? (sinon on gèle la boucle)
 
   // ── Données : piocher au hasard dans tous les albums ──────────────────────
   useEffect(() => {
@@ -58,11 +59,15 @@ export default function NueeHero() {
         const all = [];
         (j.albums || []).forEach((a) => (a.photos || []).forEach((p) => { if (p.src) all.push(p); }));
         for (let i = all.length - 1; i > 0; i--) { const k = Math.floor(Math.random() * (i + 1)); const t = all[i]; all[i] = all[k]; all[k] = t; }
-        const pool = all.slice(0, Math.min(TILE_COUNT, all.length));
+        // Mobile : moins de tuiles, miniatures plus légères, grille moins dense
+        const isMobile = typeof window !== "undefined" && window.innerWidth < 760;
+        const tileMax = isMobile ? 42 : TILE_COUNT;
+        const tileW = isMobile ? 300 : TILE_W;
+        const pool = all.slice(0, Math.min(tileMax, all.length));
 
         const rng = makeRng(7411);
         const R = (a, b) => a + (b - a) * rng();
-        const COLS = 10, ROWS = 7, cw = 100 / COLS, ch = 100 / ROWS;
+        const COLS = isMobile ? 6 : 10, ROWS = isMobile ? 6 : 7, cw = 100 / COLS, ch = 100 / ROWS;
         const ps = [], ts = [];
         let n = 0;
         for (let r = 0; r < ROWS; r++) {
@@ -73,7 +78,7 @@ export default function NueeHero() {
             const sw = R(7, 13), sh = sw * R(1.04, 1.3);
             // amplitudes de dérive RÉDUITES (plus de tremblement nerveux au repos)
             ps.push({ baseLeft: left, baseTop: top, freq: R(0.5, 1.4), phase: R(0, 6.28), ampX: R(3, 7), ampY: R(3, 7), parF: 5 + R(0, 14), rot: R(-65, 65) });
-            ts.push({ left, top, sw, sh, z: Math.round(sw * 4) + Math.floor(R(0, 5)), src: p ? thumb(p.src) : "", delay: R(0, 0.9) });
+            ts.push({ left, top, sw, sh, z: Math.round(sw * 4) + Math.floor(R(0, 5)), src: p ? thumb(p.src, tileW) : "", delay: R(0, 0.9) });
           }
         }
         params.current = ps;
@@ -90,6 +95,7 @@ export default function NueeHero() {
       const rect = h.getBoundingClientRect();
       const total = rect.height - window.innerHeight;
       P.current = total > 0 ? Math.max(0, Math.min(1, -rect.top / total)) : 0;
+      vis.current = rect.bottom > 0 && rect.top < window.innerHeight;
     };
     const onMove = (e) => {
       const el = nueeRef.current; if (!el) return;
@@ -101,10 +107,14 @@ export default function NueeHero() {
     window.addEventListener("mousemove", onMove);
     onScroll();
 
+    // Sur mobile, le flou de mouvement (filter: blur) tue le framerate : on le désactive.
+    const mobile = typeof window !== "undefined" && window.innerWidth < 760;
     let raf, last = null, T = 0;
     const loop = (ts) => {
       if (last == null) last = ts;
       const dt = Math.min(0.05, (ts - last) / 1000); last = ts;
+      // Hero hors écran (on est dans les albums) : on gèle tout le calcul.
+      if (!vis.current) { raf = requestAnimationFrame(loop); return; }
       const p = P.current;
       // Explosion : accélère vers l'extérieur, totalement dispersée en fin de scroll.
       const ex = Math.max(0, Math.min(1, p / 0.98));
@@ -133,7 +143,7 @@ export default function NueeHero() {
           const par = 1 - blast;
           node.style.transform = `translate(-50%,-50%) translate(${(pushX + oscX + MX.current * tp.parF * par).toFixed(1)}px,${(pushY + oscY + MY.current * tp.parF * par).toFixed(1)}px) rotate(${(ang * blast + rot).toFixed(1)}deg) scale(${streak.toFixed(3)},${squash.toFixed(3)})`;
           // flou de mouvement qui s'intensifie avec la vitesse + fondu en fuyant
-          node.style.filter = blast > 0.04 ? `blur(${(blast * blast * 7).toFixed(1)}px)` : "none";
+          node.style.filter = (!mobile && blast > 0.04) ? `blur(${(blast * blast * 7).toFixed(1)}px)` : "none";
           node.style.opacity = (1 - Math.max(0, (blast - 0.55) / 0.45)).toFixed(3);
         }
         el.style.opacity = "1";
@@ -183,6 +193,7 @@ export default function NueeHero() {
 
         <div style={{ position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
           <h1 style={{ fontFamily: "'Anton', Impact, sans-serif", fontWeight: 400, fontSize: "clamp(40px,7vw,120px)", lineHeight: 0.82, textTransform: "uppercase", letterSpacing: "0.02em", margin: 0, color: "#f4efe6", textShadow: "0 6px 50px rgba(0,0,0,.85)" }}>{LOGO}</h1>
+          <div style={{ marginTop: 16, fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: "clamp(11px,1.4vw,15px)", letterSpacing: "0.42em", textTransform: "uppercase", color: "rgba(244,239,230,.82)", textShadow: "0 2px 14px rgba(0,0,0,.7)" }}>Sport Photographer</div>
           <div ref={subRef} style={{ marginTop: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
             <div style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 13, letterSpacing: "0.34em", textTransform: "uppercase", color: "rgba(244,239,230,.88)", textShadow: "0 2px 14px rgba(0,0,0,.7)" }}>{SUBTITLE}</div>
             <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 16, color: ACCENT, animation: "mjnudge 2s ease-in-out infinite" }}>↓</div>
