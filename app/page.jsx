@@ -185,7 +185,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div style={{ columns: COLW, columnGap: GAP, padding: "clamp(22px,3vw,38px) clamp(20px,4vw,60px) 0" }}>
+              <div style={{ columns: narrow ? 2 : COLW, columnGap: narrow ? 8 : GAP, padding: "clamp(22px,3vw,38px) clamp(14px,4vw,60px) 0" }}>
                 {m.photos.map((p, j) => (
                   <div key={j} data-key={`${m.id}-${j}`} onClick={() => openLb(lbList, j)} role="button" tabIndex={0} aria-label="Voir la photo"
                     style={{ breakInside: "avoid", marginBottom: GAP, background: PANEL, overflow: "hidden", cursor: "pointer", position: "relative", borderRadius: 1, aspectRatio: `${p.w} / ${p.h}`, transition: TR, ...reveal(`${m.id}-${j}`) }}>
