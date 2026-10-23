@@ -14,7 +14,13 @@ Site portfolio de photographie sportive de Matthieu Jauneau (marque MATTJNO, mat
 - Les modifications se font depuis Claude, qui pousse sur GitHub.
 - Jamais de push direct sur `main` pour une évolution du site : travailler sur une branche, vérifier la prévisualisation Vercel, faire valider par Matthieu, puis fusionner sur `main`.
 - Aucun secret dans le dépôt. Les clés R2 et Resend vivent dans les secrets GitHub Actions et les variables d'environnement Vercel.
-- Avant de pousser : `npm run build` doit passer en local.
+- Variables Vercel (Production et Preview) : `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (jeton lecture seule), `RESEND_API_KEY`, `CONTACT_EMAIL`. Le site peut donc lire R2 directement côté serveur (testé le 23/10/2026).
+- Avant de pousser : `npm run build` doit passer en local. `package-lock.json` est versionné : le mettre à jour avec toute nouvelle dépendance.
+- Prévisualisation : adresse fixe par branche, `mattjno-git-<branche>-mattjnos-projects.vercel.app`. Vérifier le build via le connecteur Vercel avant de demander validation.
+
+## Photos (cible validée)
+- Le site lira R2 directement, avec rafraîchissement automatique, en remplacement de l'Action et de `site.json`. Une fois en place, retirer l'Action et les secrets R2 de GitHub.
+- Dossiers à créer : un pour le hero (paysages), un pour le portfolio (portraits 4:5). Noms à confirmer avec Matthieu.
 
 ## Direction de la refonte (validée par Matthieu)
 - Fond noir, accent blanc, rendu premium et simple. Référence : konradborzy.com/portfolio.
