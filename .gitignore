@@ -11,3 +11,7 @@ out/
 
 # Système
 .DS_Store
+
+# Images de remplacement pour contrôles locaux
+public/_local/
+.taste-skill/
