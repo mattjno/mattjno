@@ -15,9 +15,9 @@ const FOCAL = /@(\d{1,3})-(\d{1,3})(?=\.[a-z0-9]+$)/i;
 // fit(n) : nombre de photos retenues pour remplir des rangées complètes ; min : seuil pour quitter la sélection d'origine
 const SPORTS = [
   { id: "football", name: "Football", kind: "grid", hold: 0.9, fallback: FOOT, min: 4, fit: (n) => Math.min(24, Math.floor(n / 4) * 4) },
-  { id: "handball", name: "Handball", kind: "side", hold: 0.6, fallback: HAND, min: 3, fit: (n) => Math.min(12, n) },
   { id: "basket", folders: ["basketball", "basket"], name: "Basket", kind: "rows", hold: 0.6, fallback: BASKET, min: 4, fit: (n) => Math.min(16, Math.floor(n / 4) * 4) },
   { id: "football-americain", name: "Football US", full: "Football américain", kind: "mosaic", hold: 0.6, fallback: US, min: 5, fit: (n) => Math.min(13, 1 + Math.floor((n - 1) / 4) * 4) },
+  { id: "handball", name: "Handball", kind: "side", hold: 0.6, fallback: HAND, min: 3, fit: (n) => Math.min(12, n) },
 ];
 
 const strip = ({ src, w, h, i, fx, fy }) => ({ src, w, h, ...(i != null ? { i } : {}), ...(fx != null ? { fx, fy } : {}) });
