@@ -36,9 +36,24 @@ const SIZES = {
 
 const ratio = (p) => +(p.w / p.h).toFixed(4);
 
-// Lettre O d'Instrument Sans en graisse 700, en em depuis l'origine du caractère : centre du trait gauche,
-// sa largeur à mi-hauteur, et cette mi-hauteur au-dessus de la ligne de base (mesuré au canevas).
-const O_STROKE = { x: 0.108, w: 0.155, y: 0.36 };
+// Ballon du football, dessiné : pentagone central, cinq pentagones vers le bord, coutures des hexagones.
+// Coordonnées de -50 à 50 ; calculé une fois.
+const BALL = (() => {
+  const pt = (r, a, cx = 0, cy = 0) => [cx + r * Math.cos((a * Math.PI) / 180), cy + r * Math.sin((a * Math.PI) / 180)];
+  const fix = ([x, y]) => [+x.toFixed(2), +y.toFixed(2)];
+  const pent = (cx, cy, r, rot) => Array.from({ length: 5 }, (_, j) => fix(pt(r, rot + j * 72, cx, cy)));
+  const angles = [0, 1, 2, 3, 4].map((k) => -90 + k * 72);
+  const center = pent(0, 0, 13, -90);
+  const outer = angles.map((a) => { const [cx, cy] = pt(41, a); return pent(cx, cy, 12.5, a + 180); });
+  const seams = angles.flatMap((a, k) => [
+    [...center[k], ...outer[k][0]], // du pentagone central au pentagone extérieur
+    [...outer[k][4], ...outer[(k + 1) % 5][1]], // entre deux pentagones extérieurs
+    [...outer[k][2], ...fix(pt(60, a - 30))], // vers le bord
+    [...outer[k][3], ...fix(pt(60, a + 30))],
+  ]);
+  const pts = (p) => p.map((v) => v.join(",")).join(" ");
+  return { patches: [center, ...outer].map(pts), seams };
+})();
 
 // Galerie d'un chapitre pour `cols` colonnes. Trop peu de photos pour une rangée complète : on essaie avec moins de colonnes.
 function galleryOf(ch, cols) {
@@ -131,7 +146,7 @@ function Opener({ ch, count }) {
           ))}
         </div>
         <div className="ch-scrim" />
-        <div className={`ch-text${ch.kind === "grid" ? " is-bare" : ""}`}>
+        <div className="ch-text">
           <h2 className="ch-title" id={`${ch.id}-h`}>{ch.full ?? ch.name}</h2>
           <p className="ch-meta"><strong>{count} photos</strong></p>
         </div>
@@ -169,17 +184,19 @@ function Tile({ g, k, x, pre, ...f }) {
   );
 }
 
-// Football : le nom du sport en lettres géantes, découpées sur la grille. On plonge dans le O jusqu'à la révéler.
-function Dive({ word }) {
-  const half = Math.ceil(word.length / 2);
-  const a = word.slice(0, half);
-  const k = Math.max(0, a.indexOf("O"));
+// Football : le ballon du but, invisible au repos
+function Ball() {
   return (
-    <div className="fg-dive" aria-hidden="true">
-      <p className="fg-word">
-        <span className="fg-l">{a.slice(0, k)}<span className="fg-o">{a[k]}<i className="fg-base" /></span>{a.slice(k + 1)}</span>
-        <span className="fg-l">{word.slice(half)}</span>
-      </p>
+    <div className="fg-ball" aria-hidden="true">
+      <svg viewBox="-50 -50 100 100">
+        <defs><clipPath id="fg-ball-clip"><circle r="48" /></clipPath></defs>
+        <circle r="48" fill="#f1f1ef" />
+        <g clipPath="url(#fg-ball-clip)" fill="#0b0b0b" stroke="#0b0b0b" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round">
+          {BALL.patches.map((p, i) => <polygon key={i} points={p} />)}
+          {BALL.seams.map(([x1, y1, x2, y2], i) => <line key={`s${i}`} x1={x1} y1={y1} x2={x2} y2={y2} />)}
+        </g>
+        <circle r="48" fill="none" stroke="#f1f1ef" strokeWidth="2.6" /> {/* liseré clair : la silhouette reste ronde sur le fond noir */}
+      </svg>
     </div>
   );
 }
@@ -191,7 +208,7 @@ function Cells({ g, kind, cols, ...f }) {
   const pre = PRE[kind];
   return (
     <div className={pre}>
-      {kind === "grid" && <Dive word={g.sport.toUpperCase()} />}
+      {kind === "grid" && <Ball />}
       <div className={`${pre}-grid`} style={g.cols !== cols ? { "--cols": g.cols } : undefined}>
         {g.items.map((x, k) => <Tile key={x.p.src} g={g} k={k} x={x} pre={pre} {...f} />)}
       </div>
@@ -375,16 +392,18 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
           scrollTrigger: { trigger: open, start: "top 70%" },
         });
 
-        // Football : on plonge dans le O du mot géant, découpé sur la grille, jusqu'à la révéler entière
+        // Football : le but. Un ballon part du bas de l'écran, file en courbe et frappe la lucarne de la grille ;
+        // le filet tremble depuis l'impact et les photos s'allument dans l'onde. Un tir reste rapide : il se joue
+        // de lui-même (ordinateur comme téléphone), une fois, quand la première rangée est à l'écran.
         if (ch.kind === "grid") {
           const fg = section.querySelector(".fg");
           const grid = fg.querySelector(".fg-grid");
-          const dive = fg.querySelector(".fg-dive");
-          const diving = dive && getComputedStyle(dive).display !== "none";
-
-          // Les photos du premier écran sont déjà visibles dans les lettres ; les suivantes montent dans leur cadre
+          const ball = fg.querySelector(".fg-ball");
           const gridTop = grid.getBoundingClientRect().top;
-          const later = [...grid.querySelectorAll(".fg-item")].filter((el) => !diving || el.getBoundingClientRect().top - gridTop > window.innerHeight * 0.55);
+          const items = [...grid.querySelectorAll(".fg-item")];
+          // Le premier écran de photos attend le tir ; les suivantes montent dans leur cadre en arrivant
+          const first = items.filter((el) => el.getBoundingClientRect().top - gridTop <= window.innerHeight * 0.55);
+          const later = items.filter((el) => !first.includes(el));
           ScrollTrigger.batch(later, {
             start: "top 92%", once: true,
             onEnter: (batch) => {
@@ -393,76 +412,59 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
             },
           });
 
-          if (diving) {
-            const o = dive.querySelector(".fg-o");
-            const base = dive.querySelector(".fg-base");
-            const word = dive.querySelector(".fg-word");
-            let geo = null;
-            // Le mot doit tomber sur des photos : s'il chevauche l'espace entre deux rangées, il se cale sur la plus proche
-            const place = (box) => {
-              word.style.transform = "";
-              const w = word.getBoundingClientRect();
-              const rows = [];
-              grid.querySelectorAll(".fg-frame").forEach((f) => {
-                const r = f.getBoundingClientRect();
-                if (r.top < box.bottom && !rows.some((x) => Math.abs(x.top - r.top) < 2)) rows.push({ top: r.top, bottom: r.bottom });
+          // Arrivé plus bas (rechargement, lien direct) : pas de tir, la grille est déjà là
+          const pending = fg.getBoundingClientRect().top > window.innerHeight * 0.32;
+          if (ball && pending && first.length) {
+            const frames = first.map((el) => el.querySelector(".fg-frame"));
+            gsap.set(frames, { "--veil": 0.84 });
+            const shoot = () => {
+              const fr = fg.getBoundingClientRect();
+              const vw = window.innerWidth;
+              const vh = window.innerHeight;
+              const rects = first.map((el) => el.getBoundingClientRect());
+              // Lucarne : le coin haut de la photo la plus à droite de la première rangée
+              const top = Math.min(...rects.map((r) => r.top));
+              const goal = rects.filter((r) => r.top - top < 4).reduce((a, r) => (r.right > a.right ? r : a));
+              const P2 = [goal.right - goal.width * 0.22 - fr.left, goal.top + goal.height * 0.2 - fr.top];
+              // Départ au ras du bas de l'écran, ballon à moitié visible ; le point de contrôle à gauche donne l'effet enroulé
+              const P0 = [vw * 0.3 - fr.left, vh * 0.97 - fr.top];
+              const P1 = [vw * 0.04 - fr.left, P2[1] + (P0[1] - P2[1]) * 0.42];
+              const vmin = Math.min(vw, vh);
+              const D0 = vmin * 0.4;
+              const D1 = Math.max(22, vmin * 0.045);
+              const st = { t: 0, sink: 0 };
+              const paint = () => {
+                // Trajectoire qui ralentit au loin ; la taille suit le temps, pour que le ballon reste gros au départ
+                const t = Math.sin((st.t * Math.PI) / 2);
+                const u = 1 - t;
+                const x = u * u * P0[0] + 2 * u * t * P1[0] + t * t * P2[0];
+                const y = u * u * P0[1] + 2 * u * t * P1[1] + t * t * P2[1];
+                // Le ballon rapetisse en s'éloignant, s'écrase un instant dans le filet puis s'y perd
+                const d = (D0 * Math.pow(D1 / D0, st.t) * (1 - 0.5 * st.sink)) / 400;
+                const sq = Math.sin(Math.PI * Math.min(1, st.sink * 2));
+                ball.style.transform = `translate3d(${(x - 200).toFixed(1)}px, ${(y - 200).toFixed(1)}px, 0) scale(${(d * (1 + 0.22 * sq)).toFixed(4)}, ${(d * (1 - 0.18 * sq)).toFixed(4)}) rotate(${(st.t * 620).toFixed(1)}deg)`;
+                ball.style.opacity = (1 - st.sink).toFixed(3);
+              };
+              paint();
+              // Le filet : perspective centrée sur l'impact, les photos reculent puis reviennent en onde
+              const gr = grid.getBoundingClientRect();
+              grid.style.perspective = "1100px";
+              grid.style.perspectiveOrigin = `${(P2[0] + fr.left - gr.left).toFixed(0)}px ${(P2[1] + fr.top - gr.top).toFixed(0)}px`;
+              const FLIGHT = 1;
+              const tl = gsap.timeline();
+              tl.to(st, { t: 1, duration: FLIGHT, ease: "none", onUpdate: paint }, 0)
+                .to(st, { sink: 1, duration: 0.3, ease: "power2.out", onUpdate: paint }, FLIGHT);
+              first.forEach((el, i) => {
+                const r = rects[i];
+                const dist = Math.hypot(r.left + r.width / 2 - (P2[0] + fr.left), r.top + r.height / 2 - (P2[1] + fr.top));
+                const at = FLIGHT + dist / 2400;
+                const depth = 40 + 160 * Math.exp(-dist / 520);
+                tl.to(el, { z: -depth, duration: 0.14, ease: "power2.out" }, at)
+                  .to(el, { z: 0, duration: 1.2, ease: "elastic.out(1, 0.3)" }, at + 0.14)
+                  .to(frames[i], { "--veil": 0, duration: 0.55, ease: "power2.out" }, at);
               });
-              if (!rows.length || rows.some((r) => w.top >= r.top && w.bottom <= r.bottom)) return;
-              const mid = (w.top + w.bottom) / 2;
-              const fit = rows.filter((r) => r.bottom - r.top >= w.height);
-              const near = (fit.length ? fit : rows).reduce((a, r) => (Math.abs((r.top + r.bottom) / 2 - mid) < Math.abs((a.top + a.bottom) / 2 - mid) ? r : a));
-              word.style.transform = `translateY(${Math.round((near.top + near.bottom) / 2 - mid)}px)`;
             };
-            // Point visé : le milieu du trait gauche du O. Il gagne le centre de l'écran pendant que le mot grandit.
-            const measure = () => {
-              dive.style.transform = "none";
-              place(dive.getBoundingClientRect());
-              const box = dive.getBoundingClientRect();
-              const fs = parseFloat(getComputedStyle(o).fontSize);
-              const px = o.getBoundingClientRect().left - box.left + O_STROKE.x * fs;
-              const py = base.getBoundingClientRect().top - box.top - O_STROKE.y * fs;
-              geo = { px, py, cx: box.width / 2, cy: box.height / 2, s: (Math.max(box.width, box.height) / (O_STROKE.w * fs)) * 1.6 };
-            };
-            // Zoom exponentiel : une vitesse de plongée constante à l'œil
-            const st = { t: 0 };
-            const paint = () => {
-              const s = Math.pow(geo.s, st.t);
-              const m = st.t * st.t * (3 - 2 * st.t); // le point gagne le centre au rythme du zoom, sans glisser d'abord
-              const qx = geo.px + (geo.cx - geo.px) * m;
-              const qy = geo.py + (geo.cy - geo.py) * m;
-              dive.style.transform = `translate3d(${(qx - s * geo.px).toFixed(2)}px, ${(qy - s * geo.py).toFixed(2)}px, 0) scale(${s.toFixed(4)})`;
-              dive.style.opacity = st.t > 0.9 ? ((1 - st.t) / 0.1).toFixed(3) : "";
-              dive.style.visibility = st.t > 0.995 ? "hidden" : "";
-            };
-            measure();
-            paint();
-            gsap.set(grid, { transformOrigin: "50% 0%" });
-            if (wide) {
-              // Grand écran : les photos glissent dans les lettres à l'arrivée, puis la scène est tenue le temps de la plongée
-              gsap.fromTo(grid, { y: () => window.innerHeight * 0.16 }, {
-                y: 0, ease: "none",
-                scrollTrigger: { trigger: fg, start: "top bottom", end: "top top", scrub: true, invalidateOnRefresh: true },
-              });
-              gsap.timeline({
-                scrollTrigger: {
-                  trigger: fg, start: "top top", end: () => `+=${Math.round(window.innerHeight * 1.3)}`,
-                  pin: true, scrub: true, invalidateOnRefresh: true,
-                  onRefresh: () => { measure(); paint(); },
-                },
-              })
-                .to(st, { t: 1, duration: 1, ease: "none", onUpdate: paint }, 0)
-                .fromTo(grid, { scale: 1.08 }, { scale: 1, duration: 1, ease: "none" }, 0);
-            } else {
-              // Au doigt : la plongée se joue d'elle-même quand le mot occupe l'écran, et revient si l'on remonte
-              const tl = gsap.timeline({ paused: true })
-                .to(st, { t: 1, duration: 1.4, ease: "power1.in", onUpdate: paint }, 0)
-                .fromTo(grid, { scale: 1.08 }, { scale: 1, duration: 1.4, ease: "power2.out" }, 0);
-              ScrollTrigger.create({
-                trigger: fg, start: "top 12%",
-                onEnter: () => tl.play(), onLeaveBack: () => tl.reverse(),
-                onRefresh: () => { measure(); paint(); },
-              });
-            }
+            ScrollTrigger.create({ trigger: fg, start: "top 32%", once: true, onEnter: shoot });
           }
         }
 

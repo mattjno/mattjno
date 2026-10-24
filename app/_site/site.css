@@ -168,35 +168,15 @@ html.lenis, html.lenis body { height: auto; }
   .mo-feature .mo-frame { aspect-ratio: 3 / 4; flex: none; }
 }
 
-/* ---------- Football : le mot géant, découpé sur la grille. On plonge dans le O. ----------
-   Un écran noir posé sur le haut de la galerie, sans place dans la page (marges négatives), collé en haut de
-   l'écran pendant la plongée. Lettres blanches en mode « obscurcir » : la grille apparaît dans les lettres, le noir
-   reste noir (la galerie a un fond opaque : sans lui, la scène tenue rendrait les lettres blanches).
-   Sans JavaScript ou en mouvement réduit : pas d'écran, la grille seule. Le titre de l'ouverture est alors visible. */
-.fg { --fg-pad: clamp(96px, 14vh, 160px); position: relative; overflow: clip; background: var(--bg); }
-.fg-dive { display: none; }
-@media (prefers-reduced-motion: no-preference) {
-  .js .fg-dive {
-    display: flex; align-items: center; justify-content: center;
-    position: sticky; top: 0; z-index: 2; height: 100svh;
-    margin: calc(-1 * var(--fg-pad)) calc(-1 * var(--margin)) calc(var(--fg-pad) - 100svh);
-    background: #000; color: #fff; mix-blend-mode: darken; /* noir pur : aucune photo ne transparaît hors des lettres */
-    pointer-events: none; transform-origin: 0 0;
-  }
-}
-.fg-word {
-  margin: 0; text-align: center; white-space: nowrap;
-  font-weight: 700; font-size: calc(92vw / 4.9); line-height: 0.8; letter-spacing: -0.055em; text-transform: uppercase;
-}
-.fg-base { display: inline-block; width: 0; height: 0; }
-/* Le mot géant tient lieu de titre : celui de la photo d'ouverture s'efface (il reste lu par les lecteurs d'écran) */
-@media (prefers-reduced-motion: no-preference) {
-  .js .ch-text.is-bare > * { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-}
-@media (max-width: 759px) {
-  .fg-word { font-size: calc(92vw / 2.6); }
-  .fg-l { display: block; }
-}
+/* ---------- Football : le but ----------
+   Un ballon dessiné, invisible au repos, file vers la lucarne de la grille. Avant le tir, les photos du premier
+   écran sont voilées de noir (variable --veil, posée par le script : sans lui, rien n'est voilé). Le ballon est
+   dessiné à 400 px et toujours réduit, pour rester net. */
+.fg { position: relative; overflow: clip; }
+.fg-ball { position: absolute; left: 0; top: 0; z-index: 3; width: 400px; height: 400px; opacity: 0; pointer-events: none; transform-origin: 50% 50%; }
+.fg-ball svg { display: block; width: 100%; height: 100%; }
+.fg-frame::before { content: ""; position: absolute; inset: 0; z-index: 1; background: #000; opacity: var(--veil, 0); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .fg-ball { display: none; } }
 
 /* ---------- Handball : galerie latérale, à la taille des autres grilles ---------- */
 .sg { position: relative; }
