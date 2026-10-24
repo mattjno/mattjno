@@ -9,24 +9,14 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import "@fontsource-variable/instrument-sans";
-import { HERO, FOOT, HAND, BASKET, US } from "./photos";
 import Viewer from "./Viewer";
-import "../proto.css";
-import "./portfolio.css";
+import "./site.css";
 
 const INSTAGRAM = "https://instagram.com/matt.jno";
 const HERO_INTERVAL = 5500;
 const LOCAL = process.env.NEXT_PUBLIC_LOCAL_IMG === "1";
 // Grands écrans où les scènes tenues ont la place de jouer (la tablette en portrait suit le téléphone)
 const WIDE = "(min-width: 1024px) and (min-height: 560px)";
-
-// hold : défilement tenu pendant l'ouverture, en écrans. Le premier chapitre prend un peu plus de temps.
-const CHAPTERS = [
-  { id: "football", name: "Football", open: FOOT[0], series: FOOT.slice(1), kind: "grid", hold: 0.9 },
-  { id: "handball", name: "Handball", open: HAND[0], series: HAND.slice(1), kind: "side", hold: 0.6 },
-  { id: "basket", name: "Basket", open: BASKET[0], series: BASKET.slice(1), kind: "rows", hold: 0.6 },
-  { id: "football-americain", name: "Football US", full: "Football américain", open: US[0], series: US.slice(1), kind: "mosaic", hold: 0.6 },
-];
 
 const SIZES = {
   grid: "(min-width: 760px) 24vw, 48vw",
@@ -35,10 +25,8 @@ const SIZES = {
   feature: "(min-width: 760px) 50vw, 100vw",
 };
 
-const clubs = (list) => [...new Set(list.map((p) => p.match))];
-
 function Pic({ p, sizes, priority = false, quality = 80, alt = "", focal = false }) {
-  const src = LOCAL ? `/_local/v/${p.i}.jpg` : p.src;
+  const src = LOCAL && p.i != null ? `/_local/v/${p.i}.jpg` : p.src;
   const style = focal && p.fx != null ? { objectPosition: `${p.fx}% ${p.fy}%` } : undefined;
   return <Image src={src} alt={alt} fill sizes={sizes} priority={priority} quality={quality} unoptimized={LOCAL} style={style} draggable={false} />;
 }
@@ -72,13 +60,13 @@ function Opener({ ch }) {
       <div className="ch-stage">
         <div className="ch-win">
           <div className="pf-fill" style={{ transformOrigin: `${ch.open.fx ?? 50}% ${ch.open.fy ?? 50}%` }}>
-            <Pic p={ch.open} sizes="100vw" quality={82} focal alt={`${ch.full ?? ch.name} : ${ch.open.match}, ${ch.open.date}`} />
+            <Pic p={ch.open} sizes="100vw" quality={82} focal alt={`${ch.full ?? ch.name}, photo d'ouverture`} />
           </div>
         </div>
         <div className="ch-scrim" />
         <div className="ch-text">
           <h2 className="ch-title" id={`${ch.id}-h`}>{ch.full ?? ch.name}</h2>
-          <p className="ch-meta"><strong>{all.length} photos</strong>{clubs(all).join(", ")}</p>
+          <p className="ch-meta"><strong>{all.length} photos</strong></p>
         </div>
       </div>
     </div>
@@ -93,15 +81,11 @@ function Frame({ ch, k, p, sizes, className, onOpen, register, quality = 80 }) {
       className={`${className} hv pf-btn`}
       ref={register(ch.id, k)}
       onClick={(e) => onOpen(ch, k, e.currentTarget, sizes)}
-      aria-label={`Agrandir : ${p.match}, ${p.date}`}
+      aria-label={`Agrandir la photo ${k + 1} sur ${ch.series.length}, ${ch.full ?? ch.name}`}
     >
       <span className="pf-fill"><Pic p={p} sizes={sizes} quality={quality} /></span>
     </button>
   );
-}
-
-function Cap({ p }) {
-  return <figcaption className="cap"><span>{p.match}</span><span>{p.date}</span></figcaption>;
 }
 
 function Grid({ ch, ...f }) {
@@ -111,7 +95,6 @@ function Grid({ ch, ...f }) {
         {ch.series.map((p, k) => (
           <figure className="fg-item" key={p.src}>
             <Frame ch={ch} k={k} p={p} sizes={SIZES.grid} className="fg-frame" {...f} />
-            <Cap p={p} />
           </figure>
         ))}
       </div>
@@ -129,7 +112,6 @@ function Side({ ch, ...f }) {
               <li className="sg-item" key={p.src}>
                 <figure>
                   <Frame ch={ch} k={k} p={p} sizes={SIZES.side} className="sg-frame" {...f} />
-                  <Cap p={p} />
                 </figure>
               </li>
             ))}
@@ -150,7 +132,6 @@ function Rows({ ch, ...f }) {
           {row.map(({ p, k }) => (
             <figure className="ro-item" key={p.src}>
               <Frame ch={ch} k={k} p={p} sizes={SIZES.rows} className="ro-frame" {...f} />
-              <Cap p={p} />
             </figure>
           ))}
         </div>
@@ -166,7 +147,6 @@ function Mosaic({ ch, ...f }) {
         {ch.series.map((p, k) => (
           <figure className={`mo-item${k === 0 ? " mo-feature" : ""}`} key={p.src}>
             <Frame ch={ch} k={k} p={p} sizes={k === 0 ? SIZES.feature : SIZES.grid} quality={k === 0 ? 85 : 80} className="mo-frame" {...f} />
-            <Cap p={p} />
           </figure>
         ))}
       </div>
@@ -176,7 +156,7 @@ function Mosaic({ ch, ...f }) {
 
 const GALLERY = { grid: Grid, side: Side, rows: Rows, mosaic: Mosaic };
 
-export default function Portfolio() {
+export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
   const root = useRef(null);
   const navRef = useRef(null);
   const menuRef = useRef(null);
@@ -469,7 +449,7 @@ export default function Portfolio() {
             {HERO.map((p, i) => (
               <div key={p.src} className={`p-hero__slide${i === slide ? " is-active" : ""}`}>
                 <div className="p-hero__img p-fill" style={{ transformOrigin: `${p.fx ?? 50}% ${p.fy ?? 50}%` }}>
-                  <Pic p={p} sizes="100vw" priority={i === 0} quality={82} focal alt={`${p.match}, ${p.date}`} />
+                  <Pic p={p} sizes="100vw" priority={i === 0} quality={82} focal alt="Photographie de sport par MATT.JNO" />
                 </div>
               </div>
             ))}

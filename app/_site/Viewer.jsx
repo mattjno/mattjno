@@ -8,14 +8,14 @@ import Image from "next/image";
 import gsap from "gsap";
 
 const LOCAL = process.env.NEXT_PUBLIC_LOCAL_IMG === "1";
-const srcOf = (p) => (LOCAL ? `/_local/v/${p.i}.jpg` : p.src);
+const srcOf = (p) => (LOCAL && p.i != null ? `/_local/v/${p.i}.jpg` : p.src);
 
 // Plus grand cadre au format de la photo qui tient dans l'écran, sous la barre du haut et au-dessus de la légende
 function fit(p, vw, vh) {
   const narrow = vw < 760;
   const padX = narrow ? 16 : Math.max(24, Math.round(vw * 0.05));
   const top = narrow ? 60 : 76;
-  const bottom = narrow ? 118 : 88;
+  const bottom = narrow ? 72 : 80;
   const aw = vw - 2 * padX;
   const ah = Math.max(160, vh - top - bottom);
   const r = p.w / p.h;
@@ -149,38 +149,34 @@ export default function Viewer({ open, onClose }) {
         onPointerUp={onUp}
         onPointerCancel={() => { swipe.current = null; }}
       >
-        <Image key={`lo-${p.i}`} className="vw-img" src={srcOf(p)} alt="" fill sizes={sizes} quality={80} unoptimized={LOCAL} draggable={false} />
+        <Image key={`lo-${p.src}`} className="vw-img" src={srcOf(p)} alt="" fill sizes={sizes} quality={80} unoptimized={LOCAL} draggable={false} />
         <Image
-          key={`hi-${p.i}`}
-          className={`vw-img vw-hi${loaded[p.i] ? " is-in" : ""}`}
+          key={`hi-${p.src}`}
+          className={`vw-img vw-hi${loaded[p.src] ? " is-in" : ""}`}
           src={srcOf(p)}
-          alt={`${sport} : ${p.match}, ${p.date}`}
+          alt={`${sport}, photo ${k + 1} sur ${n}`}
           fill
           sizes={hiSizes}
           quality={88}
           priority
           unoptimized={LOCAL}
           draggable={false}
-          onLoad={() => setLoaded((v) => ({ ...v, [p.i]: true }))}
+          onLoad={() => setLoaded((v) => ({ ...v, [p.src]: true }))}
         />
       </div>
       <div className="vw-pre" aria-hidden="true">
         {near.map((j) => (
-          <div key={list[j].i} className="vw-pre__item">
+          <div key={list[j].src} className="vw-pre__item">
             <Image src={srcOf(list[j])} alt="" fill sizes={hiSizes} quality={88} loading="eager" unoptimized={LOCAL} />
           </div>
         ))}
       </div>
       <div className="vw-ui" ref={ui}>
         <button className="vw-close" ref={closeBtn} type="button" onClick={close}>Fermer</button>
-        <p className="vw-cap" aria-live="polite">
-          <span>{p.match}</span>
-          <span>{p.date}</span>
-        </p>
         {n > 1 && (
           <div className="vw-nav">
             <button type="button" onClick={() => go(-1)}>Précédente</button>
-            <span className="vw-count">{k + 1} sur {n}</span>
+            <span className="vw-count" aria-live="polite">{k + 1} sur {n}</span>
             <button type="button" onClick={() => go(1)}>Suivante</button>
           </div>
         )}

@@ -1,22 +1,24 @@
 import "./globals.css";
 
+const title = "MATT.JNO, photographe de sport";
+const description = "Football, handball, basket et football américain : le portfolio de MATT.JNO, photographe de sport au bord du terrain.";
+
 export const metadata = {
-  title: "MATT.JNO — Photographe de sport",
-  description: "Photographe de football : l'émotion, le duel et le geste décisif, saisis au plus près du terrain.",
+  metadataBase: new URL("https://mattjno.com"),
+  title,
+  description,
+  openGraph: { title, description, type: "website", locale: "fr_FR", siteName: "MATT.JNO" },
+  twitter: { card: "summary_large_image", title, description },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="fr">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body>{children}</body>
+      <body>
+        {/* Active les états de départ des animations seulement quand le script tourne : sans lui, tout reste visible */}
+        <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
+        {children}
+      </body>
     </html>
   );
 }
