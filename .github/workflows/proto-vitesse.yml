@@ -25,6 +25,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          for d in tools/out public/proto/vitesse; do [ -d "$d" ] && git add "$d"; done
+          for d in tools/out public/proto/vitesse; do if [ -d "$d" ]; then git add "$d"; fi; done
           git diff --cached --quiet || git commit -m "Prototype vitesse : résultats générés"
           git push
