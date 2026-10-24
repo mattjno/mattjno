@@ -1,0 +1,107 @@
+/* v3 : un chapitre par sport, une transition par chapitre. Les photos ne sont jamais retouchées :
+   seuls leurs cadres bougent (découpe, échelle du cadre, position). */
+
+.pf-fill { position: absolute; inset: 0; }
+.pf-fill img { object-fit: cover; }
+
+/* ---------- Ouverture de chapitre : une fenêtre qui s'ouvre sur tout l'écran ---------- */
+.ch-open { position: relative; height: 230svh; }
+.ch-stage { position: sticky; top: 0; height: 100svh; overflow: clip; }
+.ch-win { position: absolute; inset: 0; clip-path: inset(24% 30% 30% 30%); will-change: clip-path; }
+.ch-win .pf-fill { transform: scale(1.25); will-change: transform; }
+.ch-scrim { position: absolute; inset: auto 0 0 0; height: 45%; background: rgba(8, 8, 8, 0.5); opacity: 0; mask-image: linear-gradient(to top, #000 35%, transparent); -webkit-mask-image: linear-gradient(to top, #000 35%, transparent); } /* taste-skill-ignore: scrim neutre sous le titre */
+.ch-text {
+  position: absolute; left: var(--margin); right: var(--margin); bottom: clamp(24px, 6vh, 56px); z-index: 2;
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 24px;
+}
+.ch-title {
+  font-weight: 700; font-size: var(--t-display); line-height: 0.84; letter-spacing: -0.055em; text-transform: uppercase;
+}
+.proto[data-type="serif"] .ch-title { font-family: var(--serif); font-weight: 400; font-style: italic; text-transform: none; letter-spacing: -0.03em; }
+.ch-meta { font-size: var(--t-small); text-align: right; max-width: 30ch; padding-bottom: 0.6em; }
+.ch-meta strong { display: block; font-size: var(--t-lead); font-weight: 600; letter-spacing: -0.02em; }
+@media (max-width: 760px) {
+  .ch-win { clip-path: inset(22% 10% 34% 10%); }
+  .ch-text { flex-direction: column; align-items: flex-start; }
+  .ch-meta { text-align: left; }
+}
+
+/* ---------- Football : le rideau ---------- */
+.cu { position: relative; }
+.cu-stage {
+  position: sticky; top: 0; height: 100svh; overflow: clip;
+  display: grid; grid-template-columns: repeat(12, 1fr); column-gap: 20px; align-items: end;
+  padding: 80px var(--margin) clamp(24px, 5vh, 48px);
+}
+.cu-frames { grid-column: 4 / span 6; align-self: center; justify-self: center; position: relative; height: calc(100svh - 160px); aspect-ratio: 4 / 5; max-width: 100%; }
+.cu-frame { position: absolute; inset: 0; overflow: clip; background: #111; clip-path: inset(100% 0 0 0); will-change: clip-path, transform; }
+.cu-frame:first-child { clip-path: inset(0 0 0 0); }
+.cu-shade { position: absolute; inset: 0; background: var(--bg); opacity: 0; pointer-events: none; }
+.cu-caps { grid-column: 1 / span 3; position: relative; height: 4.4em; }
+.cu-cap { position: absolute; left: 0; bottom: 0; opacity: 0; visibility: hidden; transition: opacity 300ms ease, visibility 300ms; }
+.cu-cap.is-on { opacity: 1; visibility: visible; }
+.cu-cap strong { display: block; font-size: var(--t-lead); font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 6px; }
+.cu-count { grid-column: 10 / span 3; justify-self: end; align-self: start; padding-top: 8px; font-size: var(--t-small); font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) {
+  .cu-stage { grid-template-columns: 1fr 1fr; padding-top: 72px; row-gap: 12px; }
+  .cu-frames { grid-column: 1 / -1; height: auto; width: 100%; }
+  .cu-caps { grid-column: 1; }
+  .cu-count { grid-column: 2; }
+}
+
+/* ---------- Handball : galerie latérale ---------- */
+.sg { position: relative; }
+.sg-stage { padding: 96px 0 64px; }
+.sg-window { clip-path: inset(0 var(--margin)); }
+.sg-track {
+  display: flex; gap: clamp(10px, 1.2vw, 18px); list-style: none; margin: 0;
+  padding: 0 var(--margin); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--margin); scrollbar-width: none;
+}
+.sg-track::-webkit-scrollbar { display: none; }
+.sg-item { flex: 0 0 min(72vw, 26rem); scroll-snap-align: start; }
+.sg-frame { position: relative; aspect-ratio: 4 / 5; overflow: clip; background: #111; }
+.sg-frame .pf-fill { inset: 0 -6%; }
+.sg-cap { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; font-size: var(--t-small); }
+.sg-cap span:last-child { color: var(--muted); }
+.sg.is-pinned .sg-stage { position: sticky; top: 0; height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: 0; overflow: clip; }
+.sg.is-pinned .sg-track { overflow: visible; scroll-snap-type: none; will-change: transform; }
+.sg.is-pinned .sg-item { flex-basis: calc(70svh * 0.8); }
+
+/* ---------- Basket : colonnes à contre-sens ---------- */
+.co { position: relative; height: 260svh; }
+.co-stage { position: sticky; top: 0; height: 100svh; overflow: clip; display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(10px, 1.2vw, 18px); padding: 0 var(--margin); }
+.co-col { display: flex; flex-direction: column; gap: clamp(10px, 1.2vw, 18px); will-change: transform; }
+.co-col--down { justify-content: flex-end; }
+.co-item { margin: 0; }
+.co-frame { position: relative; aspect-ratio: 4 / 5; overflow: clip; background: #111; }
+.co-item figcaption { margin-top: 10px; font-size: var(--t-small); display: flex; justify-content: space-between; gap: 12px; }
+.co-item figcaption span:last-child { color: var(--muted); }
+@media (max-width: 760px) {
+  .co-stage { grid-template-columns: 1fr 1fr; }
+  .co-col:nth-child(3) { display: none; }
+}
+
+/* ---------- Football américain : la grille qui plonge ---------- */
+.zg { position: relative; height: 260svh; }
+.zg-stage { position: sticky; top: 0; height: 100svh; overflow: clip; display: grid; place-items: center; }
+.zg-grid {
+  --cell: min(29svh, 27vw);
+  display: grid; grid-template-columns: repeat(3, calc(var(--cell) * 0.8)); gap: clamp(8px, 1vw, 14px);
+  transform-origin: 50% 50%;
+}
+.zg-cell { position: relative; height: var(--cell); overflow: clip; background: #111; }
+.zg-cap {
+  position: absolute; left: var(--margin); right: var(--margin); bottom: clamp(24px, 5vh, 48px); z-index: 2;
+  display: flex; justify-content: space-between; gap: 16px; font-size: var(--t-small); opacity: 0;
+}
+.zg-cap strong { font-size: var(--t-lead); font-weight: 600; letter-spacing: -0.02em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-win { clip-path: none; }
+  .ch-win .pf-fill { transform: none; }
+  .cu-frame { clip-path: none; position: relative; }
+  .cu-frames { height: auto; }
+  .co { height: auto; } .co-stage { position: static; height: auto; }
+  .zg { height: auto; } .zg-stage { position: static; height: auto; padding: 40px 0; }
+  .zg-cap { opacity: 1; position: static; padding: 16px var(--margin); }
+}
