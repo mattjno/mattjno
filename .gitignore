@@ -3,7 +3,7 @@ node_modules/
 
 # Build Next.js
 .next/
-out/
+/out/
 
 # Variables d'environnement
 .env
