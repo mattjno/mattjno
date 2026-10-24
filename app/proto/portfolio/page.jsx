@@ -342,10 +342,6 @@ export default function Portfolio() {
         trigger: q(".kc")[0], start: "top 85%", once: true,
         onEnter: () => gsap.fromTo(q(".kc-intro > *, .kc-form > *"), { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, stagger: 0.06, ease: "expo.out" }),
       });
-      ScrollTrigger.create({
-        trigger: q(".kc .k__handle")[0], start: "top 98%", once: true,
-        onEnter: () => gsap.fromTo(q(".kc .k__handle > span"), { yPercent: 100 }, { yPercent: 0, duration: 1.1, stagger: 0.04, ease: "expo.out" }),
-      });
     }, root);
 
     // Tous les déclencheurs existent : un calcul d'ensemble, puis un second quand la police est chargée
@@ -505,6 +501,7 @@ export default function Portfolio() {
             <div className="kc-intro">
               <h2 className="p-head" id="k-h">Contact</h2>
               <p>Un match, une campagne, une saison à couvrir ? Écrivez-moi.</p>
+              <a className="kc-insta" href={INSTAGRAM} target="_blank" rel="noopener noreferrer">@matt.jno</a>
             </div>
             <form className="kc-form" onSubmit={submitContact} data-ui>
               <label className="kc-field">Nom<input name="name" required autoComplete="name" /></label>
@@ -518,9 +515,6 @@ export default function Portfolio() {
               {cstatus === "error" && <p className="kc-field">L'envoi a échoué. Réessayez ou écrivez sur Instagram.</p>}
             </form>
           </div>
-          <a className="k__handle" href={INSTAGRAM} target="_blank" rel="noopener noreferrer" aria-label="Instagram @matt.jno">
-            {"@matt.jno".split("").map((c, i) => <span key={i} aria-hidden="true"><span>{c}</span></span>)}
-          </a>
         </section>
       </main>
 
