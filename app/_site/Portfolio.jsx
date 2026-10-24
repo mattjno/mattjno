@@ -10,6 +10,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import "@fontsource-variable/instrument-sans";
 import Viewer from "./Viewer";
+import { PASSAGES, BallArt, FieldArt, fits, passage as playPassage } from "./Passage";
 import { pack, span } from "./pack";
 import "./site.css";
 
@@ -103,10 +104,31 @@ function cycler(open) {
   };
 }
 
-function Pic({ p, sizes, priority = false, quality = 80, alt = "", focal = false }) {
+function Pic({ p, sizes, priority = false, quality = 80, alt = "", focal = false, loading }) {
   const src = LOCAL && p.i != null ? `/_local/v/${p.i}.jpg` : p.src;
   const style = focal && p.fx != null ? { objectPosition: `${p.fx}% ${p.fy}%` } : undefined;
-  return <Image src={src} alt={alt} fill sizes={sizes} priority={priority} quality={quality} unoptimized={LOCAL} style={style} draggable={false} />;
+  return <Image src={src} alt={alt} fill sizes={sizes} priority={priority} loading={loading} quality={quality} unoptimized={LOCAL} style={style} draggable={false} />;
+}
+
+// Passage « travelling » : une bande de photos du sport, entières, à la même hauteur. La case du centre est vide :
+// c'est la fenêtre de l'ouverture, réduite à sa taille, qui y passe puis grandit jusqu'au plein écran.
+function Strip({ ch }) {
+  const [, ...more] = ch.slides;
+  const s = ch.series;
+  const item = (p) => (
+    <li className="ch-strip__item" key={p.src} style={{ "--r": ratio(p) }}>
+      <span className="pf-fill"><Pic p={p} sizes="(min-width: 760px) 40vw, 60vw" loading="eager" /></span>
+    </li>
+  );
+  return (
+    <div className="ch-strip" aria-hidden="true">
+      <ul className="ch-strip__track">
+        {[s[0], more[0], s[1], s[2]].filter(Boolean).map(item)}
+        <li className="ch-strip__item is-target" />
+        {[more[1], s[3], s[4]].filter(Boolean).map(item)}
+      </ul>
+    </div>
+  );
 }
 
 // Fenêtre de départ de l'ouverture : centrée sur le point d'action de la photo, sans toucher la zone du titre.
@@ -131,11 +153,12 @@ function startWindow(fx = 50, fy = 50) {
 // Découpe à l'avancement p (0 : fenêtre de départ, 1 : plein écran)
 const insetAt = (s, p) => `inset(${s.map((v) => `${(v * (1 - p)).toFixed(3)}%`).join(" ")})`;
 
-function Opener({ ch, count }) {
+function Opener({ ch, count, passage }) {
   const first = ch.slides[0];
   return (
-    <div className="ch-open" style={{ "--hold": ch.hold }} data-fx={first.fx ?? 50} data-fy={first.fy ?? 50}>
+    <div className="ch-open" style={{ "--hold": ch.hold }} data-fx={first.fx ?? 50} data-fy={first.fy ?? 50} data-passage={passage || undefined}>
       <div className="ch-stage">
+        {passage === "travelling" && <Strip ch={ch} />}
         <div className="ch-win">
           {ch.slides.map((p, i) => (
             <div className={`ch-slide${i === 0 ? " is-on" : ""}`} key={p.src} aria-hidden={i > 0 ? "true" : undefined}>
@@ -145,6 +168,8 @@ function Opener({ ch, count }) {
             </div>
           ))}
         </div>
+        {passage === "ballon" && <div className="ch-pre ch-ball" aria-hidden="true"><BallArt id={ch.id} /></div>}
+        {passage === "terrain" && <div className="ch-pre ch-field" aria-hidden="true"><FieldArt id={ch.id} /></div>}
         <div className="ch-scrim" />
         <div className="ch-text">
           <h2 className="ch-title" id={`${ch.id}-h`}>{ch.full ?? ch.name}</h2>
@@ -250,6 +275,21 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
   const [menu, setMenu] = useState(false);
   const [viewer, setViewer] = useState(null);
   const [cols, setCols] = useState(4);
+  const [passage, setPassage] = useState("fenetre");
+  const [chooser, setChooser] = useState(false);
+
+  // Passage entre les sports, en test : lu dans l'adresse (?passage=…), choisi dans la barre, hors production
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("passage");
+    if (PASSAGES.some((o) => o.id === id)) setPassage(id);
+    setChooser(!/(^|\.)mattjno\.com$/.test(window.location.hostname));
+  }, []);
+  const choosePassage = (id) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("passage", id);
+    window.history.replaceState(null, "", url);
+    setPassage(id);
+  };
 
   useEffect(() => {
     const xl = window.matchMedia(XL);
@@ -352,14 +392,19 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
         const fx = Number(open.dataset.fx);
         const fy = Number(open.dataset.fy);
         const slides = watch(open);
+        // Un passage précédent a pu laisser la fenêtre déplacée ou transparente
+        Object.assign(win.style, { opacity: "", transform: "", transformOrigin: "", clipPath: "" });
 
         // La fenêtre s'ouvre depuis le geste jusqu'au plein écran. La découpe est calculée ici à chaque image :
         // laissée à l'interpolation de GSAP, elle perdait un côté ou se déformait selon l'arrondi des valeurs.
         let start = startWindow(fx, fy);
         const state = { p: 0 };
         const paint = () => { win.style.clipPath = insetAt(start, state.p); };
-        paint();
-        if (wide) {
+        if (open.dataset.passage) {
+          // Passage en test (ballon, terrain, travelling) : il joue son prélude puis ouvre la fenêtre à sa façon
+          playPassage(open.dataset.passage, { open, sport: ch.id, wide, slides });
+        } else if (wide) {
+          paint();
           // Grand écran : la fenêtre suit le défilement ; grande ouverte (fin de l'ouverture), les photos se succèdent
           const tl = gsap.timeline({
             scrollTrigger: {
@@ -376,6 +421,7 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
         } else {
           // Téléphone et tablette : au doigt, l'élan ferait passer l'ouverture en un éclair. Elle se joue donc
           // d'elle-même, en un temps fixe, dès que la fenêtre est à l'écran, et se referme si l'on remonte.
+          paint();
           gsap.set(fill, { scale: 1.25 });
           const tl = gsap.timeline({ paused: true, onComplete: () => slides.open(true) });
           tl.to(state, { p: 1, duration: 1.3, ease: "power3.inOut", onUpdate: paint }, 0)
@@ -547,7 +593,7 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
       if (lenis) { gsap.ticker.remove(tick); lenis.destroy(); }
       lenisRef.current = null;
     };
-  }, [cols]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cols, passage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lock = (on) => {
     const l = lenisRef.current;
@@ -684,7 +730,7 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
           const g = galleries[i];
           return (
             <section key={ch.id} id={ch.id} aria-labelledby={`${ch.id}-h`}>
-              <Opener ch={ch} count={ch.slides.length + g.items.length} />
+              <Opener ch={ch} count={ch.slides.length + g.items.length} passage={i > 0 && passage !== "fenetre" && fits(passage, ch.id) ? passage : null} />
               {ch.kind === "side"
                 ? <Side g={g} onOpen={openViewer} register={register} />
                 : <Cells g={g} kind={ch.kind} cols={cols} onOpen={openViewer} register={register} />}
@@ -721,6 +767,15 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
           <button onClick={() => go("top")}>Haut de page</button>
         </nav>
       </footer>
+
+      {chooser && (
+        <div className="pf-passage p-nav__links" role="group" aria-label="Passage entre les sports (prévisualisation)">
+          <span>Passage</span>
+          {PASSAGES.map((o) => (
+            <button key={o.id} aria-pressed={passage === o.id} onClick={() => choosePassage(o.id)}>{o.label}</button>
+          ))}
+        </div>
+      )}
 
       {viewer && <Viewer open={viewer} onClose={closeViewer} />}
     </div>

@@ -19,6 +19,7 @@ Site portfolio de photographie sportive de Matthieu Jauneau (marque MATTJNO, mat
 - Aucun secret dans le dépôt. Les clés R2 et Resend vivent dans les secrets GitHub Actions et les variables d'environnement Vercel.
 - Variables Vercel (Production et Preview) : `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (jeton lecture seule), `RESEND_API_KEY`, `CONTACT_EMAIL`. Le site peut donc lire R2 directement côté serveur (testé le 23/10/2026).
 - Avant de pousser : `npm run build` doit passer en local. `package-lock.json` est versionné : le mettre à jour avec toute nouvelle dépendance.
+- Node n'est pas installé sur le Mac de Matthieu : pour construire ou lancer le site en local, utiliser une copie officielle de Node 22 (nodejs.org) dans un dossier temporaire, sans installation système.
 - Prévisualisation : adresse fixe par branche, `mattjno-git-<branche>-mattjnos-projects.vercel.app`. Vérifier le build via le connecteur Vercel avant de demander validation.
 
 ## Photos
@@ -49,3 +50,13 @@ Site portfolio de photographie sportive de Matthieu Jauneau (marque MATTJNO, mat
 - Au doigt (téléphone, tablette), les animations ne suivent pas le défilement : l'élan les ferait passer en un éclair. L'ouverture se joue d'elle-même en 1,3 s dès que la fenêtre est à l'écran, et se referme si l'on remonte. Rangées basket et galerie handball entrent en cascade.
 - Mouvement réduit (réglage du système) : apparitions en fondu, aucun déplacement.
 - À partir de 1 700 px : 5 colonnes (football, basket, mosaïque). La galerie est rangée à nouveau pour chaque nombre de colonnes ; trop peu de photos pour une rangée complète : moins de colonnes.
+
+## Passages entre sports (en test, branche `design/passages`)
+- But : montrer qu'on passe d'un monde à l'autre (football → basket → football américain → handball), avec du mouvement et de la place pour les photos. Code dans `app/_site/Passage.jsx`. Le premier chapitre (football) garde son ouverture « fenêtre ».
+- Trois propositions, en plus de « Fenêtre » (l'ouverture actuelle), à comparer sur la prévisualisation : barre « Passage » en haut à droite (cachée sur mattjno.com), ou `?passage=ballon|terrain|travelling` dans l'adresse.
+  - Ballon : le ballon du sport, dessiné, fait son geste (basket : dribble ; football américain : passe en spirale ; handball : tir vu du gardien), se pose sur le point d'action de la photo ; la photo apparaît dans le ballon, puis le cercle (l'ovale) s'ouvre jusqu'au plein écran.
+  - Terrain : les lignes du terrain vu d'en haut se tracent en se couchant à plat ; la photo remplit le terrain, puis s'ouvre en plein écran. Terrain debout sur téléphone.
+  - Travelling : une bande de photos du sport (entières) traverse l'écran de droite à gauche et pose au centre la photo d'ouverture, au format de l'écran ; elle grandit jusqu'au plein écran et la bande sort par les bords.
+- Chaque passage ajoute un écran tenu (`--pre`) avant l'ouverture. Grand écran : tout suit le défilement. Au doigt : prélude en temps réel puis ouverture en 1,3 s, dès que l'ouverture a son haut à 20 % de l'écran. Mouvement réduit ou sans JavaScript : ni prélude ni calque.
+- Les passages et la barre se placent au-dessus du titre du chapitre, mesuré (deux lignes pour « Football américain »).
+- Une fois le choix fait par Matthieu : garder le passage retenu, retirer les autres et la barre, puis mettre cette section à jour.

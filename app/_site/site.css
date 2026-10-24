@@ -126,6 +126,38 @@ html.lenis, html.lenis body { height: auto; }
   .ch-meta { text-align: left; }
 }
 
+/* ---------- Passages d'un sport à l'autre (en test, voir Passage.jsx) ----------
+   Un écran de plus pour le prélude (moins au doigt, où il se joue de lui-même). Les calques du prélude sont
+   invisibles au repos : sans script ou en mouvement réduit, l'ouverture reste une photo plein écran. */
+.ch-open[data-passage] { --pre: 1.2; height: calc(100svh * (1 + var(--hold, 0.6) + var(--pre))); }
+@media (max-width: 1023px), (max-height: 559px) { .ch-open[data-passage] { --pre: 0.5; } }
+.ch-pre { position: absolute; left: 0; top: 0; pointer-events: none; opacity: 0; will-change: transform; }
+.ch-pre svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.ch-ball { width: 400px; height: 400px; transform-origin: 50% 50%; }
+.ch-field { transform-origin: 50% 50%; }
+.ch-field path { fill: none; stroke: var(--ink); stroke-width: var(--sw, 0.1); stroke-dasharray: 1; stroke-dashoffset: 1; }
+.ch-field path[data-fade] { stroke-dasharray: none; stroke-dashoffset: 0; opacity: 0; }
+.ch-field path[data-fade][stroke-dasharray] { stroke-dasharray: 0.3 0.3; }
+.ch-strip { position: absolute; inset: 0; opacity: 0; transform-origin: 0 0; pointer-events: none; will-change: transform; }
+.ch-strip__track {
+  --gap: clamp(10px, 1.2vw, 18px);
+  position: absolute; left: 0; top: 0; display: flex; gap: var(--gap); margin: 0; padding: 0; list-style: none; will-change: transform;
+}
+.ch-strip__item { position: relative; flex: none; height: var(--h, 50svh); aspect-ratio: var(--r); background: #111; overflow: clip; }
+.ch-strip__item.is-target { aspect-ratio: auto; background: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ch-open[data-passage] { height: 100svh; }
+  .ch-pre, .ch-strip { display: none; }
+}
+
+/* Barre de choix du passage : prévisualisation seulement (cachée sur mattjno.com) */
+.pf-passage { position: fixed; right: var(--margin); top: 72px; z-index: 60; align-items: baseline; padding: 8px 18px; background: var(--bg); }
+.pf-passage > span { color: var(--muted); font-size: var(--t-small); }
+.pf-passage button[aria-pressed="true"]::after { transform: scaleX(1); transform-origin: left; }
+@media (max-width: 759px) {
+  .pf-passage { top: 60px; left: 0; right: 0; justify-content: space-between; gap: 10px; padding: 4px var(--margin); }
+}
+
 /* ---------- Vignettes cliquables, cadre blanc au survol (direction validée) ---------- */
 .pf-btn {
   display: block; width: 100%; margin: 0; padding: 0; border: 0; background: #111; color: inherit; font: inherit;
