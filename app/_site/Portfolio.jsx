@@ -23,7 +23,7 @@ const XL = "(min-width: 1700px)";
 
 const SIZES = {
   grid: "(min-width: 1700px) 19vw, (min-width: 760px) 24vw, 48vw",
-  side: "(min-width: 1024px) 31vw, (min-width: 760px) 46vw, 74vw",
+  side: "(min-width: 1700px) 19vw, (min-width: 1024px) 24vw, (min-width: 760px) 30vw, 44vw",
   rows: "(min-width: 1700px) 19vw, (min-width: 760px) 24vw, 48vw",
   feature: "(min-width: 1700px) 40vw, (min-width: 760px) 50vw, 100vw",
 };

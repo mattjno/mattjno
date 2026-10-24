@@ -157,13 +157,15 @@ html.lenis, html.lenis body { height: auto; }
   padding: 0 var(--margin); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--margin); scrollbar-width: none;
 }
 .sg-track::-webkit-scrollbar { display: none; }
-.sg-item { flex: 0 0 min(74vw, 420px); scroll-snap-align: start; }
+.sg-item { flex: 0 0 min(44vw, 260px); scroll-snap-align: start; }
 .sg-item figure { margin: 0; }
 .sg-frame { aspect-ratio: 3 / 4; }
-@media (min-width: 760px) { .sg-item { flex-basis: 46vw; } }
+@media (min-width: 760px) { .sg-item { flex-basis: 30vw; } }
 .sg.is-pinned .sg-stage { position: sticky; top: 0; height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: 0; overflow: clip; }
 .sg.is-pinned .sg-track { overflow: visible; scroll-snap-type: none; will-change: transform; }
-.sg.is-pinned .sg-item { flex-basis: min(calc((100vw - 2 * var(--margin) - 2 * var(--gap)) / 3), calc((100svh - 200px) * 0.75)); }
+/* Même taille que les grilles des autres sports : 4 de front, 5 sur grand écran */
+.sg.is-pinned .sg-item { flex-basis: min(calc((100vw - 2 * var(--margin) - 3 * var(--gap)) / 4), calc((100svh - 200px) * 0.75)); }
+@media (min-width: 1700px) { .sg.is-pinned .sg-item { flex-basis: min(calc((100vw - 2 * var(--margin) - 4 * var(--gap)) / 5), calc((100svh - 200px) * 0.75)); } }
 
 /* ---------- Basket : les rangées qui glissent ---------- */
 .ro { padding: clamp(96px, 14vh, 160px) var(--margin) clamp(64px, 10vh, 120px); overflow-x: clip; }
