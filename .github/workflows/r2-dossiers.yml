@@ -13,18 +13,29 @@ jobs:
   dossiers:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm i @aws-sdk/client-s3
       - name: Créer les dossiers
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: auto
-          ACCOUNT: ${{ secrets.R2_ACCOUNT_ID }}
-          BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
-          set -e
-          EP="https://${ACCOUNT}.r2.cloudflarestorage.com"
-          for d in hero football handball basket football-americain; do
-            aws s3api put-object --bucket "$BUCKET" --key "$d/" --content-length 0 --endpoint-url "$EP" > /dev/null
-            echo "Dossier créé : $d/"
-          done
-          aws s3api list-objects-v2 --bucket "$BUCKET" --delimiter "/" --endpoint-url "$EP" --query "CommonPrefixes[].Prefix" --output text
+          cat > dossiers.mjs <<'JS'
+          import { S3Client, PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+          const s3 = new S3Client({ region: "auto", endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+            credentials: { accessKeyId: process.env.R2_ACCESS_KEY_ID, secretAccessKey: process.env.R2_SECRET_ACCESS_KEY } });
+          const Bucket = process.env.R2_BUCKET;
+          let failed = false;
+          for (const d of ["hero", "football", "handball", "basket", "football-americain"]) {
+            try { await s3.send(new PutObjectCommand({ Bucket, Key: `${d}/`, Body: "" })); console.log(`::notice::Dossier créé : ${d}/`); }
+            catch (e) { failed = true; console.log(`::error::${d}/ : ${e.name} ${e.$metadata?.httpStatusCode ?? ""} ${e.message}`); }
+          }
+          const r = await s3.send(new ListObjectsV2Command({ Bucket, Delimiter: "/" })).catch((e) => ({ err: e }));
+          console.log(`::notice::Dossiers racine : ${r.err ? r.err.name : (r.CommonPrefixes || []).map((p) => p.Prefix).join(" ")}`);
+          process.exit(failed ? 1 : 0);
+          JS
+          node dossiers.mjs
