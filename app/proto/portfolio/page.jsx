@@ -17,7 +17,7 @@ const LOCAL = process.env.NEXT_PUBLIC_LOCAL_IMG === "1";
 
 // Chaque chapitre : sa photo d'ouverture, sa série et sa transition
 const CHAPTERS = [
-  { id: "football", name: "Football", open: FOOT[0], series: FOOT.slice(1), kind: "curtain" },
+  { id: "football", name: "Football", open: FOOT[0], series: FOOT.slice(1), kind: "grid" },
   { id: "handball", name: "Handball", open: HAND[0], series: HAND.slice(1), kind: "side" },
   { id: "basket", name: "Basket", open: BASKET[0], series: BASKET.slice(1), kind: "columns" },
   { id: "football-americain", name: "Football US", full: "Football américain", open: US[0], series: US.slice(1), kind: "zoom" },
@@ -46,24 +46,16 @@ function Opener({ ch }) {
   );
 }
 
-function Curtain({ ch, active }) {
+function Grid({ ch }) {
   return (
-    <div className="cu" style={{ height: `${ch.series.length * 85 + 15}svh` }}>
-      <div className="cu-stage">
-        <div className="cu-caps" aria-live="polite">
-          {ch.series.map((p, i) => (
-            <p className={`cu-cap${i === active ? " is-on" : ""}`} key={p.src}><strong>{p.match}</strong>{p.date}</p>
-          ))}
-        </div>
-        <div className="cu-frames">
-          {ch.series.map((p) => (
-            <figure className="cu-frame" key={p.src}>
-              <div className="pf-fill"><Pic p={p} sizes="(min-width: 760px) 45vw, 100vw" /></div>
-              <div className="cu-shade" />
-            </figure>
-          ))}
-        </div>
-        <p className="cu-count">{active + 1} sur {ch.series.length}</p>
+    <div className="fg">
+      <div className="fg-grid">
+        {ch.series.map((p) => (
+          <figure className="fg-item" key={p.src}>
+            <div className="fg-frame hv"><div className="pf-fill"><Pic p={p} sizes="(min-width: 760px) 24vw, 48vw" /></div></div>
+            <figcaption className="cap"><span>{p.match}</span><span>{p.date}</span></figcaption>
+          </figure>
+        ))}
       </div>
     </div>
   );
@@ -77,8 +69,8 @@ function Side({ ch }) {
           <ul className="sg-track">
             {ch.series.map((p) => (
               <li className="sg-item" key={p.src}>
-                <div className="sg-frame"><div className="pf-fill"><Pic p={p} sizes="(min-width: 760px) 35vw, 72vw" /></div></div>
-                <p className="sg-cap"><span>{p.match}</span><span>{p.date}</span></p>
+                <div className="sg-frame hv"><div className="pf-fill"><Pic p={p} sizes="(min-width: 760px) 24vw, 44vw" /></div></div>
+                <p className="cap"><span>{p.match}</span><span>{p.date}</span></p>
               </li>
             ))}
           </ul>
@@ -89,17 +81,17 @@ function Side({ ch }) {
 }
 
 function Columns({ ch }) {
-  const cols = [[], [], []];
-  ch.series.forEach((p, i) => cols[i % 3].push(p));
+  const cols = [[], [], [], []];
+  ch.series.forEach((p, i) => cols[i % 4].push(p));
   return (
     <div className="co">
       <div className="co-stage">
         {cols.map((col, c) => (
-          <div className={`co-col${c === 1 ? " co-col--down" : ""}`} key={c}>
+          <div className={`co-col${c % 2 === 1 ? " co-col--down" : ""}`} key={c}>
             {col.map((p) => (
               <figure className="co-item" key={p.src}>
-                <div className="co-frame"><div className="pf-fill"><Pic p={p} sizes="(min-width: 760px) 32vw, 48vw" /></div></div>
-                <figcaption><span>{p.match}</span><span>{p.date}</span></figcaption>
+                <div className="co-frame hv"><div className="pf-fill"><Pic p={p} sizes="(min-width: 760px) 24vw, 48vw" /></div></div>
+                <figcaption className="cap"><span>{p.match}</span><span>{p.date}</span></figcaption>
               </figure>
             ))}
           </div>
@@ -110,15 +102,16 @@ function Columns({ ch }) {
 }
 
 function Zoom({ ch }) {
-  const cells = ch.series.slice(0, 9);
-  const center = cells[4];
+  const cells = ch.series.slice(0, 8);
+  const FOCUS = 5;
+  const center = cells[FOCUS];
   return (
     <div className="zg">
       <div className="zg-stage">
         <div className="zg-grid">
           {cells.map((p, i) => (
-            <div className={`zg-cell${i === 4 ? " zg-cell--center" : ""}`} key={p.src}>
-              <div className="pf-fill"><Pic p={p} sizes={i === 4 ? "(min-width: 760px) 70vw, 100vw" : "25vw"} quality={i === 4 ? 85 : 75} /></div>
+            <div className={`zg-cell hv${i === FOCUS ? " zg-cell--center" : ""}`} key={p.src}>
+              <div className="pf-fill"><Pic p={p} sizes={i === FOCUS ? "(min-width: 760px) 70vw, 100vw" : "25vw"} quality={i === FOCUS ? 85 : 75} /></div>
             </div>
           ))}
         </div>
@@ -134,7 +127,6 @@ export default function Portfolio() {
   const lenisRef = useRef(null);
   const [slide, setSlide] = useState(0);
   const [type, setType] = useState("sans");
-  const [cuActive, setCuActive] = useState(0);
   const [cstatus, setCstatus] = useState("idle");
 
   useEffect(() => {
@@ -220,24 +212,25 @@ export default function Portfolio() {
         });
       });
 
-      // ---------- Football : le rideau, chaque photo monte sur la précédente ----------
-      const cu = q(".cu")[0];
-      if (cu) {
-        const frames = cu.querySelectorAll(".cu-frame");
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: cu, start: "top top", end: "bottom bottom", scrub: true,
-            onUpdate: (s) => setCuActive(Math.min(frames.length - 1, Math.round(s.progress * (frames.length - 1)))),
+      // ---------- Football : la grille se dévoile rangée par rangée, colonnes décalées ----------
+      const fg = q(".fg")[0];
+      if (fg) {
+        ScrollTrigger.batch(fg.querySelectorAll(".fg-item"), {
+          start: "top 92%", once: true,
+          onEnter: (batch) => {
+            gsap.fromTo(batch.map((b) => b.querySelector(".fg-frame")), { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.2, stagger: 0.08, ease: "expo.out" });
+            gsap.fromTo(batch.map((b) => b.querySelector(".pf-fill")), { scale: 1.2 }, { scale: 1, duration: 1.5, stagger: 0.08, ease: "expo.out" });
+            gsap.fromTo(batch.map((b) => b.querySelector(".cap")), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.8, delay: 0.3, stagger: 0.08, ease: "expo.out" });
           },
-          defaults: { ease: "none" },
         });
-        frames.forEach((f, i) => {
-          if (i === 0) return;
-          tl.to(f, { clipPath: "inset(0% 0 0 0)", duration: 1 }, i - 1)
-            .fromTo(f.querySelector(".pf-fill"), { yPercent: 12 }, { yPercent: 0, duration: 1 }, i - 1)
-            .to(frames[i - 1], { scale: 0.9, duration: 1 }, i - 1)
-            .to(frames[i - 1].querySelector(".cu-shade"), { opacity: 0.6, duration: 1 }, i - 1);
-        });
+        if (wide) {
+          fg.querySelectorAll(".fg-item").forEach((item, k) => {
+            const col = k % 4;
+            const amp = [0, -60, 0, -60][col];
+            if (!amp) return;
+            gsap.fromTo(item, { y: 0 }, { y: amp, ease: "none", scrollTrigger: { trigger: fg, start: "top bottom", end: "bottom top", scrub: true } });
+          });
+        }
       }
 
       // ---------- Handball : la verticale devient horizontale ----------
@@ -264,11 +257,11 @@ export default function Portfolio() {
 
       // ---------- Basket : colonnes à contre-sens ----------
       const co = q(".co")[0];
-      if (co) {
+      if (co && wide) {
         const cols = co.querySelectorAll(".co-col");
         const travel = (col) => Math.max(0, col.scrollHeight - window.innerHeight + 80);
         cols.forEach((col, c) => {
-          const down = c === 1;
+          const down = c % 2 === 1;
           gsap.fromTo(col, { y: () => (down ? -travel(col) : 40) }, {
             y: () => (down ? 40 : -travel(col)), ease: "none",
             scrollTrigger: { trigger: co, start: "top top", end: "bottom bottom", scrub: true, invalidateOnRefresh: true },
@@ -280,11 +273,16 @@ export default function Portfolio() {
       const zg = q(".zg")[0];
       if (zg) {
         const grid = zg.querySelector(".zg-grid");
-        const centerCell = zg.querySelector(".zg-cell--center");
-        const target = () => Math.min((window.innerHeight * 0.84) / centerCell.offsetHeight, (window.innerWidth * 0.92) / centerCell.offsetWidth);
-        const tl = gsap.timeline({ scrollTrigger: { trigger: zg, start: "top top", end: "bottom bottom", scrub: true, invalidateOnRefresh: true }, defaults: { ease: "none" } });
+        const cell = zg.querySelector(".zg-cell--center");
+        const stage = zg.querySelector(".zg-stage");
+        const target = () => Math.min((window.innerHeight * 0.84) / cell.offsetHeight, (window.innerWidth * 0.92) / cell.offsetWidth);
+        const origin = () => `${cell.offsetLeft + cell.offsetWidth / 2}px ${cell.offsetTop + cell.offsetHeight / 2}px`;
+        const dx = () => stage.clientWidth / 2 - (grid.offsetLeft + cell.offsetLeft + cell.offsetWidth / 2);
+        const dy = () => stage.clientHeight / 2 - (grid.offsetTop + cell.offsetTop + cell.offsetHeight / 2);
+        gsap.set(grid, { transformOrigin: origin });
+        const tl = gsap.timeline({ scrollTrigger: { trigger: zg, start: "top top", end: "bottom bottom", scrub: true, invalidateOnRefresh: true, onRefreshInit: () => gsap.set(grid, { transformOrigin: origin() }) }, defaults: { ease: "none" } });
         tl.to({}, { duration: 0.15 })
-          .to(grid, { scale: target, duration: 0.7 })
+          .to(grid, { scale: target, x: dx, y: dy, duration: 0.7 })
           .to(zg.querySelectorAll(".zg-cell:not(.zg-cell--center)"), { opacity: 0, duration: 0.3 }, 0.5)
           .to(zg.querySelector(".zg-cap"), { opacity: 1, duration: 0.15 }, 0.75)
           .to({}, { duration: 0.15 });
@@ -369,7 +367,7 @@ export default function Portfolio() {
         {CHAPTERS.map((ch) => (
           <section key={ch.id} id={ch.id} aria-labelledby={`${ch.id}-h`}>
             <Opener ch={ch} />
-            {ch.kind === "curtain" && <Curtain ch={ch} active={cuActive} />}
+            {ch.kind === "grid" && <Grid ch={ch} />}
             {ch.kind === "side" && <Side ch={ch} />}
             {ch.kind === "columns" && <Columns ch={ch} />}
             {ch.kind === "zoom" && <Zoom ch={ch} />}
