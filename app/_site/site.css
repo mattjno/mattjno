@@ -140,7 +140,7 @@ html.lenis, html.lenis body { height: auto; }
 .fg-grid { display: grid; grid-template-columns: repeat(4, 1fr); column-gap: clamp(10px, 1.2vw, 18px); row-gap: clamp(28px, 4vh, 48px); align-items: start; }
 .fg-item { margin: 0; }
 .fg-item:nth-child(4n + 2), .fg-item:nth-child(4n + 4) { margin-top: clamp(40px, 8vh, 96px); }
-.fg-frame { aspect-ratio: 4 / 5; }
+.fg-frame { aspect-ratio: 3 / 4; }
 @media (max-width: 759px) {
   .fg-grid { grid-template-columns: 1fr 1fr; }
   .fg-item:nth-child(4n + 2), .fg-item:nth-child(4n + 4) { margin-top: 0; }
@@ -159,30 +159,30 @@ html.lenis, html.lenis body { height: auto; }
 .sg-track::-webkit-scrollbar { display: none; }
 .sg-item { flex: 0 0 min(74vw, 420px); scroll-snap-align: start; }
 .sg-item figure { margin: 0; }
-.sg-frame { aspect-ratio: 4 / 5; }
+.sg-frame { aspect-ratio: 3 / 4; }
 @media (min-width: 760px) { .sg-item { flex-basis: 46vw; } }
 .sg.is-pinned .sg-stage { position: sticky; top: 0; height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: 0; overflow: clip; }
 .sg.is-pinned .sg-track { overflow: visible; scroll-snap-type: none; will-change: transform; }
-.sg.is-pinned .sg-item { flex-basis: min(calc((100vw - 2 * var(--margin) - 2 * var(--gap)) / 3), calc((100svh - 200px) * 0.8)); }
+.sg.is-pinned .sg-item { flex-basis: min(calc((100vw - 2 * var(--margin) - 2 * var(--gap)) / 3), calc((100svh - 200px) * 0.75)); }
 
 /* ---------- Basket : les rangées qui glissent ---------- */
 .ro { padding: clamp(96px, 14vh, 160px) var(--margin) clamp(64px, 10vh, 120px); overflow-x: clip; display: grid; row-gap: clamp(28px, 4vh, 48px); }
 .ro-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(10px, 1.2vw, 18px); will-change: transform; }
 .ro-item { margin: 0; }
-.ro-frame { aspect-ratio: 4 / 5; }
+.ro-frame { aspect-ratio: 3 / 4; }
 @media (max-width: 759px) { .ro-row { grid-template-columns: 1fr 1fr; row-gap: 28px; } }
 
 /* ---------- Football américain : la mosaïque ---------- */
 .mo { padding: clamp(96px, 14vh, 160px) var(--margin) clamp(64px, 10vh, 120px); }
 .mo-grid { display: grid; grid-template-columns: repeat(4, 1fr); column-gap: clamp(10px, 1.2vw, 18px); row-gap: clamp(28px, 4vh, 48px); }
 .mo-item { margin: 0; display: flex; flex-direction: column; }
-.mo-frame { aspect-ratio: 4 / 5; }
+.mo-frame { aspect-ratio: 3 / 4; }
 .mo-feature { grid-column: span 2; grid-row: span 2; }
 .mo-feature .mo-frame { aspect-ratio: auto; flex: 1; min-height: 0; }
 @media (max-width: 759px) {
   .mo-grid { grid-template-columns: 1fr 1fr; }
   .mo-feature { grid-row: auto; }
-  .mo-feature .mo-frame { aspect-ratio: 4 / 5; flex: none; }
+  .mo-feature .mo-frame { aspect-ratio: 3 / 4; flex: none; }
 }
 
 /* ---------- Contact : une seule fin, sur fond noir ---------- */

@@ -21,7 +21,7 @@ Site portfolio de photographie sportive de Matthieu Jauneau (marque MATTJNO, mat
 - Prévisualisation : adresse fixe par branche, `mattjno-git-<branche>-mattjnos-projects.vercel.app`. Vérifier le build via le connecteur Vercel avant de demander validation.
 
 ## Photos
-- Hero et ouvertures : paysages d'au moins 3 000 px de large. Grilles : portraits 4:5.
+- Hero et ouvertures : paysages d'au moins 3 000 px de large. Grilles : portraits 3:4 (format Instagram 1080 × 1440).
 - Les identifiants R2 de Claude (Vercel, GitHub) sont en lecture seule : Claude ne crée ni ne dépose rien dans le bucket.
 
 ## Direction de la refonte (validée par Matthieu)
