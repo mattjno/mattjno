@@ -12,6 +12,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 export const PASSAGES = [
   { id: "fenetre", label: "Fenêtre" },
+  { id: "voyage", label: "Voyage" },
   { id: "ballon", label: "Ballon" },
   { id: "terrain", label: "Terrain" },
   { id: "travelling", label: "Travelling" },
@@ -79,6 +80,22 @@ const US_HASH = Array.from({ length: 99 }, (_, i) => i + 11).filter((x) => x % 5
   .map((x) => `M${x} 0.67V1.33M${x} 23.25V23.92M${x} 29.42V30.08M${x} 52V52.67`).join("");
 
 const FIELDS = {
+  football: {
+    w: 105, h: 68,
+    lines: [
+      { d: "M0 0H105V68H0Z", a: 0, b: 0.4 },
+      { d: "M52.5 0V68", a: 0.2, b: 0.5 },
+      { d: "M61.65 34A9.15 9.15 0 1 1 43.35 34A9.15 9.15 0 1 1 61.65 34", a: 0.35, b: 0.65 },
+    ],
+    side: [
+      { d: "M0 13.84H16.5V54.16H0", a: 0.35, b: 0.75 },
+      { d: "M0 24.84H5.5V43.16H0", a: 0.5, b: 0.8 },
+      { d: "M16.5 26.69A9.15 9.15 0 0 1 16.5 41.31", a: 0.6, b: 0.9 },
+      { d: "M0 30.34H-2V37.66H0", a: 0.7, b: 0.95 },
+      { d: "M1 0A1 1 0 0 1 0 1", a: 0.8, b: 1 },
+      { d: "M0 67A1 1 0 0 1 1 68", a: 0.8, b: 1 },
+    ],
+  },
   basket: {
     w: 28, h: 15,
     lines: [
@@ -143,7 +160,7 @@ export function FieldArt({ id }) {
 }
 
 // Un passage a-t-il de quoi se jouer pour ce sport ?
-export const fits = (kind, id) => (kind === "ballon" ? !!BALLS[id] : kind === "terrain" ? !!FIELDS[id] : kind === "travelling");
+export const fits = (kind, id) => (kind === "ballon" ? !!BALLS[id] : kind === "terrain" || kind === "voyage" ? !!FIELDS[id] : kind === "travelling");
 
 // ---------- Gestes : position, taille et rotation du ballon pour g de 0 (départ) à 1 (posé au point d'action) ----------
 const GESTURES = {
@@ -365,8 +382,251 @@ const SCENES = {
   },
 };
 
+// ---------- Voyage : du couloir du stade à la place du photographe ----------
+// Une caméra en 3D (CSS) : on avance dans un couloir sombre, plafonniers et photos du sport aux murs ; au bout, la
+// photo d'ouverture, petite, comme la lumière du terrain. On débouche au-dessus du terrain (surface, lignes aux
+// vraies dimensions, projecteurs qui s'allument), on le survole, puis on descend au ras du sol, à main levée :
+// le viseur se pose, l'autofocus accroche le point d'action, l'obturateur claque et la photo prend tout l'écran.
+// Unités : U = hauteur de l'écran. La perspective vaut U : à la distance U, un plan de la taille de l'écran le remplit.
+
+const TIMES = [0, 0.32, 0.56, 0.8];
+const catmull = (a, b, c, d, t) => {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
+};
+const SHOT = 0.9; // avancement du déclenchement
+const INDOOR = { basket: true, handball: true };
+
+function voyage({ open, sport, wide, slides }) {
+  const stage = open.querySelector(".ch-stage");
+  const win = open.querySelector(".ch-win");
+  const fill = open.querySelector(".ch-win .pf-fill");
+  const scrim = open.querySelector(".ch-scrim");
+  const titles = open.querySelectorAll(".ch-title, .ch-meta");
+  const vo = stage.querySelector(".vo");
+  const world = vo.querySelector(".vo-world");
+  const hero = world.querySelector(".vo-hero");
+  const lights = [...world.querySelectorAll(".vo-light")];
+  const walls = [...world.querySelectorAll(".vo-wall")];
+  const strips = [...world.querySelectorAll(".vo-strip")];
+  const lamps = [...world.querySelectorAll(".vo-lamp")];
+  const over = stage.querySelector(".vo-over");
+  const finder = over.querySelector(".vo-finder");
+  const af = over.querySelector(".vo-af");
+  const blades = [...over.querySelectorAll(".vo-shutter span")];
+  const f = FIELDS[sport];
+  const indoor = !!INDOOR[sport];
+  const fx = Number(open.dataset.fx);
+  const fy = Number(open.dataset.fy);
+  const st = { s: 0 };
+  let g;
+  let shot = false;
+  let shutter = null;
+
+  const put = (el, w, h, x, y, z, rot = "") => {
+    el.style.width = `${w.toFixed(1)}px`;
+    el.style.height = `${h.toFixed(1)}px`;
+    el.style.transform = `translate(-50%, -50%) translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) ${rot}`;
+  };
+
+  const layout = () => {
+    const V = stage.clientWidth;
+    const U = stage.clientHeight;
+    vo.style.perspective = `${U}px`; // sur le parent direct du monde : un parent intermédiaire l'aplatirait
+    const T = 6 * U; // longueur du couloir
+    const eye = -0.42 * U; // hauteur de la caméra dans le couloir
+    // Demi-largeur du couloir : plus étroit sur un écran en hauteur, pour garder les photos des murs dans le cadre
+    const wx = Math.min(0.8 * U, 0.62 * V);
+    const fade = []; // éléments qui s'estompent au loin et disparaissent derrière la caméra : [el, z, opacité, projecteur]
+
+    // Couloir : 12 plafonniers, puis deux rangées de bandes lumineuses au ras du sol
+    lights.forEach((el, i) => {
+      if (i < 12) {
+        const z = -(0.5 + i * 0.5) * U;
+        put(el, 0.52 * wx, 0.07 * U, 0, -U, z, "rotateX(-90deg)");
+        fade.push([el, z, 1]);
+      } else {
+        const k = (i - 12) >> 1;
+        const side = i % 2 ? 1 : -1;
+        const z = -(0.5 + k * 0.5) * U;
+        put(el, 0.018 * U, 0.26 * U, side * wx, 0, z, "rotateX(90deg)");
+        fade.push([el, z, 0.7]);
+      }
+    });
+    // Photos du sport aux murs, en quinconce, tournées vers la caméra
+    walls.forEach((el, i) => {
+      const side = i % 2 ? 1 : -1;
+      const h = (wx < 0.8 * U ? 0.36 : 0.5) * U;
+      const r = Number(el.dataset.r) || 0.8;
+      const z = -(1.1 + i * 0.62) * U;
+      put(el, Math.min(h * r, 1.2 * U), h, side * wx, eye, z, `rotateY(${-side * 72}deg)`);
+      fade.push([el, z, 1]);
+    });
+
+    // Terrain : longueur 6,2 U dans l'axe, marge autour ; découpé en bandes pour que la partie passée derrière la
+    // caméra disparaisse proprement (Safari dessine mal un plan qui traverse la caméra). Dessiné réduit, agrandi en 3D.
+    const z0 = -T - 0.4 * U;
+    const L = 6.2 * U;
+    const Wd = (L * f.h) / f.w;
+    const m = 0.35 * U;
+    const Wt = Wd + 2 * m;
+    const Lt = L + 2 * m;
+    const zFar = z0 - L - m;
+    const k = 2.5;
+    const Ls = Lt / strips.length;
+    strips.forEach((el, i) => {
+      put(el, Wt / k, Ls / k, 0, 0, zFar + (i + 0.5) * Ls, `rotateX(90deg) scale(${k})`);
+      const turf = el.firstElementChild;
+      turf.style.width = `${(Wt / k).toFixed(1)}px`;
+      turf.style.height = `${(Lt / k).toFixed(1)}px`;
+      turf.style.top = `${(-(i * Ls) / k).toFixed(1)}px`;
+      if (!indoor) turf.style.setProperty("--band", `${(Lt / k / 18).toFixed(1)}px`); // bandes de tonte
+      const field = turf.firstElementChild;
+      field.style.width = `${(L / k).toFixed(1)}px`;
+      field.style.height = `${(Wd / k).toFixed(1)}px`;
+      field.style.left = `${((Wt - L) / 2 / k).toFixed(1)}px`;
+      field.style.top = `${((Lt - Wd) / 2 / k).toFixed(1)}px`;
+      field.style.setProperty("--sw", (0.003 * f.w).toFixed(3));
+    });
+
+    // Projecteurs : quatre pylônes dehors, une rangée de plafonniers en salle
+    lamps.forEach((el, j) => {
+      const sx = j % 2 ? 1 : -1;
+      if (indoor) {
+        const z = z0 - (0.1 + (j >> 1) * 0.26) * L;
+        put(el, 0.8 * U, 0.26 * U, sx * 0.75 * U, -2.1 * U, z, "rotateX(-90deg)");
+        fade.push([el, z, 1, j]);
+      } else if (j < 4) {
+        const z = j < 2 ? z0 + 0.3 * U : z0 - L - 0.3 * U;
+        put(el, 0.9 * U, 0.42 * U, sx * (Wd / 2 + 0.9 * U), -2.4 * U, z, `rotateY(${-sx * 28}deg) rotateX(-18deg)`);
+        fade.push([el, z, 1, j]);
+      } else {
+        el.style.display = "none";
+      }
+    });
+
+    // La place du photographe : au ras du sol, juste après la ligne de fond ; la photo à la distance U, plein cadre
+    const E = { x: 0, y: -0.16 * U, z: zFar - 0.05 * U, down: 0, yaw: 0, roll: 0 };
+    put(hero, V, U, E.x, E.y, E.z - U);
+    af.style.left = `${fx}%`;
+    af.style.top = `${fy}%`;
+
+    const K = [
+      { x: 0, y: eye, z: 0.3 * U, down: 0, yaw: 0, roll: 0 },
+      { x: 0, y: eye, z: -T + 0.2 * U, down: 0, yaw: 0, roll: 0 },
+      { x: 0.35 * U, y: -1.9 * U, z: z0 - 0.25 * L, down: 24, yaw: -6, roll: -2.5 },
+      E,
+    ];
+    g = { U, K, fade, strips: strips.map((el, i) => [el, zFar + i * Ls, zFar + (i + 1) * Ls]) };
+  };
+
+  // Caméra à l'avancement s : spline passant par les quatre positions, atteintes à s = 0 ; 0,32 (sortie du couloir) ;
+  // 0,56 (au-dessus du terrain) ; 0,8 (place du photographe). Elle prend son élan dans le couloir et se pose en douceur.
+  const camera = (s) => {
+    const v = Math.min(s, TIMES[3]);
+    let i = 0;
+    while (i < 2 && v > TIMES[i + 1]) i++;
+    const t0 = (v - TIMES[i]) / (TIMES[i + 1] - TIMES[i]);
+    const t = i === 0 ? 1 - Math.cos((t0 * Math.PI) / 2) : i === 2 ? Math.sin((t0 * Math.PI) / 2) : t0;
+    const P = [g.K[0], ...g.K, g.K[3]];
+    const c = {};
+    ["x", "y", "z", "down", "yaw", "roll"].forEach((key) => { c[key] = catmull(P[i][key], P[i + 1][key], P[i + 2][key], P[i + 3][key], t); });
+    // À main levée, en arrivant et jusqu'au déclenchement
+    const hand = smooth(s, 0.66, 0.8) * (1 - smooth(s, 0.88, SHOT));
+    c.down += hand * 0.35 * Math.sin(s * 173);
+    c.yaw += hand * 0.35 * Math.sin(s * 131 + 1);
+    c.roll += hand * 0.3 * Math.sin(s * 97 + 2);
+    return c;
+  };
+
+  const swap = (on) => {
+    vo.style.visibility = on ? "hidden" : "";
+    finder.style.opacity = on ? "0" : finder.style.opacity;
+    af.style.opacity = on ? "0" : af.style.opacity;
+    win.style.opacity = on ? "1" : "0";
+    slides.open(on);
+    gsap.killTweensOf([fill, scrim, ...titles]);
+    if (on) {
+      gsap.fromTo(fill, { scale: 1.06 }, { scale: 1, duration: 1.6, ease: "expo.out" });
+      gsap.to(scrim, { opacity: 1, duration: 0.6, ease: "power1.out" });
+      gsap.fromTo(titles, { yPercent: 30, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 1, stagger: 0.08, ease: "expo.out", delay: 0.15 });
+    } else {
+      gsap.set(scrim, { opacity: 0 });
+      gsap.set(titles, { opacity: 0 });
+    }
+  };
+
+  // L'obturateur : deux rideaux se ferment et se rouvrent ; l'échange se fait rideaux fermés
+  const release = (on) => {
+    if (shutter) shutter.kill();
+    shutter = gsap.timeline()
+      .to(blades, { yPercent: 0, duration: 0.08, ease: "power2.in" })
+      .add(() => swap(on))
+      .to(blades[0], { yPercent: -101, duration: 0.16, ease: "power2.out" }, "+=0.05")
+      .to(blades[1], { yPercent: 101, duration: 0.16, ease: "power2.out" }, "<");
+  };
+
+  const paint = () => {
+    const { s } = st;
+    const { U } = g;
+    const c = camera(s);
+    world.style.transform = `translateZ(${U}px) rotateZ(${(-c.roll).toFixed(3)}deg) rotateX(${(-c.down).toFixed(3)}deg) rotateY(${c.yaw.toFixed(3)}deg) translate3d(${(-c.x).toFixed(1)}px, ${(-c.y).toFixed(1)}px, ${(-c.z).toFixed(1)}px)`;
+    // Brume : rien derrière la caméra, fondu au loin. Les projecteurs s'allument l'un après l'autre en sortant du couloir.
+    g.fade.forEach(([el, z, base, lamp]) => {
+      const d = c.z - z;
+      const lit = lamp == null ? 1 : smooth(s, 0.28 + lamp * 0.012, 0.31 + lamp * 0.012);
+      el.style.opacity = (base * lit * span01(d, 0.12 * U, 0.45 * U) * (1 - span01(d, 6 * U, 11 * U))).toFixed(3);
+    });
+    // Le terrain s'allume avec eux et s'efface quand on arrive à la place du photographe
+    const on = smooth(s, 0.27, 0.4) * (1 - smooth(s, 0.72, 0.8));
+    g.strips.forEach(([el, zf]) => { el.style.opacity = zf > c.z + 0.02 * U ? "0" : on.toFixed(3); });
+    // Mise au point : la photo floue pendant la descente, nette au moment de déclencher
+    const blur = 7 * smooth(s, 0.64, 0.7) * (1 - smooth(s, 0.8, 0.86));
+    hero.style.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : "";
+    // Viseur et collimateur d'autofocus, qui accroche puis clignote
+    finder.style.opacity = shot ? "0" : smooth(s, 0.72, 0.78).toFixed(3);
+    const lock = smooth(s, 0.8, 0.85);
+    const blink = s > 0.85 && s < SHOT ? (Math.floor((s - 0.85) / 0.01) % 2 ? 0.35 : 1) : 1;
+    af.style.opacity = shot ? "0" : (smooth(s, 0.76, 0.8) * blink).toFixed(3);
+    af.style.transform = `translate(-50%, -50%) scale(${(1.5 - 0.5 * lock).toFixed(3)})`;
+    const now = s >= SHOT;
+    if (now !== shot) { shot = now; release(now); }
+  };
+
+  const refresh = () => { layout(); paint(); };
+  gsap.set(blades[0], { yPercent: -101 });
+  gsap.set(blades[1], { yPercent: 101 });
+  gsap.set(titles, { opacity: 0 });
+  gsap.set(scrim, { opacity: 0 });
+  win.style.opacity = "0";
+  refresh();
+
+  if (wide) {
+    const css = getComputedStyle(open);
+    const pre = parseFloat(css.getPropertyValue("--pre")) || 3;
+    const hold = parseFloat(css.getPropertyValue("--hold")) || 0.6;
+    gsap.timeline({
+      scrollTrigger: { trigger: open, start: "top top", end: "bottom bottom", scrub: true, onRefresh: refresh },
+      defaults: { ease: "none" },
+    })
+      .to(st, { s: 1, duration: pre, onUpdate: paint })
+      .to({}, { duration: hold });
+    return;
+  }
+  // Au doigt : le voyage se joue comme un film, en 4,6 s, et se rembobine vite si l'on remonte
+  const play = gsap.to(st, { s: 1, duration: 4.6, ease: "none", paused: true, onUpdate: paint });
+  ScrollTrigger.create({
+    trigger: open, start: "top 20%",
+    onEnter: () => play.timeScale(1).play(),
+    onLeaveBack: () => play.timeScale(3).reverse(),
+    onRefresh: refresh,
+  });
+}
+
 // Joue un passage sur l'ouverture `open`. À appeler dans le gsap.context de la page, dans l'ordre des chapitres.
 export function passage(kind, { open, sport, wide, slides }) {
+  if (kind === "voyage") return voyage({ open, sport, wide, slides });
   const stage = open.querySelector(".ch-stage");
   const win = open.querySelector(".ch-win");
   const fill = open.querySelector(".ch-win .pf-fill");

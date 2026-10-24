@@ -153,12 +153,48 @@ function startWindow(fx = 50, fy = 50) {
 // Découpe à l'avancement p (0 : fenêtre de départ, 1 : plein écran)
 const insetAt = (s, p) => `inset(${s.map((v) => `${(v * (1 - p)).toFixed(3)}%`).join(" ")})`;
 
+// Passage « voyage » : le couloir du stade (plafonniers, bandes lumineuses, photos du sport aux murs), le terrain
+// découpé en bandes, ses projecteurs, et la photo d'ouverture à la place du photographe. Positions dans Passage.jsx.
+function VoyageWorld({ ch }) {
+  const [hero, ...more] = ch.slides;
+  const walls = [...more, ...ch.series].slice(0, 8);
+  return (
+    <div className="vo" data-sport={ch.id} aria-hidden="true">
+      <div className="vo-world">
+        {Array.from({ length: 36 }, (_, i) => <span className="vo-light" key={`l${i}`} />)}
+        {walls.map((p) => (
+          <div className="vo-wall" key={p.src} data-r={ratio(p)}>
+            <span className="pf-fill"><Pic p={p} sizes="(min-width: 760px) 30vw, 50vw" /></span>
+          </div>
+        ))}
+        {Array.from({ length: 16 }, (_, i) => (
+          <div className="vo-strip" key={`s${i}`}><div className="vo-turf"><div className="vo-field"><FieldArt id={ch.id} /></div></div></div>
+        ))}
+        {Array.from({ length: 8 }, (_, i) => <div className="vo-lamp" key={`p${i}`}>{Array.from({ length: 10 }, (_, j) => <i key={j} />)}</div>)}
+        <div className="vo-hero"><span className="pf-fill"><Pic p={hero} sizes="100vw" quality={82} focal /></span></div>
+      </div>
+    </div>
+  );
+}
+
+// Le viseur (coins du cadre, collimateur d'autofocus) et les deux rideaux de l'obturateur
+function VoyageOver() {
+  return (
+    <div className="vo-over" aria-hidden="true">
+      <div className="vo-finder"><i /><i /><i /><i /></div>
+      <span className="vo-af" />
+      <div className="vo-shutter"><span /><span /></div>
+    </div>
+  );
+}
+
 function Opener({ ch, count, passage }) {
   const first = ch.slides[0];
   return (
     <div className="ch-open" style={{ "--hold": ch.hold }} data-fx={first.fx ?? 50} data-fy={first.fy ?? 50} data-passage={passage || undefined}>
       <div className="ch-stage">
         {passage === "travelling" && <Strip ch={ch} />}
+        {passage === "voyage" && <VoyageWorld ch={ch} />}
         <div className="ch-win">
           {ch.slides.map((p, i) => (
             <div className={`ch-slide${i === 0 ? " is-on" : ""}`} key={p.src} aria-hidden={i > 0 ? "true" : undefined}>
@@ -170,6 +206,7 @@ function Opener({ ch, count, passage }) {
         </div>
         {passage === "ballon" && <div className="ch-pre ch-ball" aria-hidden="true"><BallArt id={ch.id} /></div>}
         {passage === "terrain" && <div className="ch-pre ch-field" aria-hidden="true"><FieldArt id={ch.id} /></div>}
+        {passage === "voyage" && <VoyageOver />}
         <div className="ch-scrim" />
         <div className="ch-text">
           <h2 className="ch-title" id={`${ch.id}-h`}>{ch.full ?? ch.name}</h2>
@@ -433,10 +470,13 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
             onRefresh: () => { start = startWindow(fx, fy); paint(); },
           });
         }
-        gsap.from(open.querySelectorAll(".ch-title, .ch-meta"), {
-          yPercent: 30, opacity: 0, duration: 1, stagger: 0.08, ease: "expo.out",
-          scrollTrigger: { trigger: open, start: "top 70%" },
-        });
+        // Le voyage montre le titre lui-même, au déclenchement
+        if (open.dataset.passage !== "voyage") {
+          gsap.from(open.querySelectorAll(".ch-title, .ch-meta"), {
+            yPercent: 30, opacity: 0, duration: 1, stagger: 0.08, ease: "expo.out",
+            scrollTrigger: { trigger: open, start: "top 70%" },
+          });
+        }
 
         // Football : le but. Un ballon part du bas de l'écran, file en courbe et frappe la lucarne de la grille ;
         // le filet tremble depuis l'impact et les photos s'allument dans l'onde. Un tir reste rapide : il se joue
@@ -730,7 +770,7 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
           const g = galleries[i];
           return (
             <section key={ch.id} id={ch.id} aria-labelledby={`${ch.id}-h`}>
-              <Opener ch={ch} count={ch.slides.length + g.items.length} passage={i > 0 && passage !== "fenetre" && fits(passage, ch.id) ? passage : null} />
+              <Opener ch={ch} count={ch.slides.length + g.items.length} passage={(i > 0 || passage === "voyage") && passage !== "fenetre" && fits(passage, ch.id) ? passage : null} />
               {ch.kind === "side"
                 ? <Side g={g} onOpen={openViewer} register={register} />
                 : <Cells g={g} kind={ch.kind} cols={cols} onOpen={openViewer} register={register} />}

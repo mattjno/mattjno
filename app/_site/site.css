@@ -150,12 +150,54 @@ html.lenis, html.lenis body { height: auto; }
   .ch-pre, .ch-strip { display: none; }
 }
 
+/* ---------- Voyage : couloir du stade, terrain, place du photographe ----------
+   Trois écrans et demi de défilement sur grand écran (un peu plus d'un au doigt, où il se joue comme un film). */
+.ch-open[data-passage="voyage"] { --pre: 3.4; }
+@media (max-width: 1023px), (max-height: 559px) { .ch-open[data-passage="voyage"] { --pre: 1.2; } }
+.vo { position: absolute; inset: 0; overflow: clip; pointer-events: none; }
+.vo-world { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; will-change: transform; }
+.vo-world > * { position: absolute; left: 0; top: 0; }
+.vo-light { background: var(--ink); }
+.vo-wall { background: #111; overflow: clip; }
+.vo-strip { overflow: clip; }
+/* Surfaces : pelouse tondue en bandes, parquet, sol de handball ; le bord se perd dans la nuit */
+.vo-turf {
+  --turf: #1d4a2a; --turf-2: #215230; --band: 40px;
+  position: absolute; left: 0;
+  background: repeating-linear-gradient(0deg, var(--turf) 0 var(--band), var(--turf-2) var(--band) calc(var(--band) * 2)); /* taste-skill-ignore: bandes de tonte franches, pas un dégradé */
+  mask-image: radial-gradient(farthest-side, #000 80%, transparent); -webkit-mask-image: radial-gradient(farthest-side, #000 80%, transparent);
+}
+.vo[data-sport="basket"] .vo-turf { --turf: #5c3b22; --turf-2: #56371f; --band: 6px; }
+.vo[data-sport="handball"] .vo-turf { --turf: #1f3f74; --turf-2: #1f3f74; }
+.vo-field { position: absolute; transform: rotate(90deg); }
+.vo-field svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.vo-field path { fill: none; stroke: #f1f1ef; stroke-width: var(--sw, 0.3); opacity: 0.92; }
+.vo-lamp { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8%; padding: 4%; background: #1a1a1a; }
+.vo-lamp i { background: var(--ink); }
+.vo-hero { overflow: clip; background: #111; }
+.vo-over { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+/* Viseur : les quatre coins du cadre et le collimateur d'autofocus */
+.vo-finder { position: absolute; inset: 7% 6%; opacity: 0; }
+.vo-finder i { position: absolute; width: clamp(24px, 3vw, 44px); height: clamp(24px, 3vw, 44px); border: 0 solid var(--ink); }
+.vo-finder i:nth-child(1) { left: 0; top: 0; border-width: 3px 0 0 3px; }
+.vo-finder i:nth-child(2) { right: 0; top: 0; border-width: 3px 3px 0 0; }
+.vo-finder i:nth-child(3) { left: 0; bottom: 0; border-width: 0 0 3px 3px; }
+.vo-finder i:nth-child(4) { right: 0; bottom: 0; border-width: 0 3px 3px 0; }
+.vo-af { position: absolute; width: clamp(44px, 5vw, 72px); aspect-ratio: 4 / 3; border: 2px solid var(--ink); opacity: 0; }
+.vo-shutter span { position: absolute; left: 0; right: 0; height: 50.5%; background: #000; }
+.vo-shutter span:first-child { top: 0; }
+.vo-shutter span:last-child { bottom: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .vo, .vo-over { display: none; }
+}
+
 /* Barre de choix du passage : prévisualisation seulement (cachée sur mattjno.com) */
 .pf-passage { position: fixed; right: var(--margin); top: 72px; z-index: 60; align-items: baseline; padding: 8px 18px; background: var(--bg); }
 .pf-passage > span { color: var(--muted); font-size: var(--t-small); }
 .pf-passage button[aria-pressed="true"]::after { transform: scaleX(1); transform-origin: left; }
 @media (max-width: 759px) {
   .pf-passage { top: 60px; left: 0; right: 0; justify-content: space-between; gap: 10px; padding: 4px var(--margin); }
+  .pf-passage > span { display: none; }
 }
 
 /* ---------- Vignettes cliquables, cadre blanc au survol (direction validée) ---------- */
