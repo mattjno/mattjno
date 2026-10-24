@@ -1,5 +1,5 @@
 // Côté serveur : lit les photos du site dans R2. Un dossier par rubrique : hero/, football/, handball/,
-// basket/, football-americain/. Matthieu dépose ses exports sans les renommer ; le site lit lui-même leurs
+// basketball/, football-americain/. Matthieu dépose ses exports sans les renommer ; le site lit lui-même leurs
 // dimensions. Paysage le plus récent d'un sport : ouverture du chapitre. Portraits : la grille, du plus récent
 // au plus ancien. Un dossier vide ou incomplet garde la sélection d'origine (photos.js).
 // Point d'action facultatif dans le nom du fichier : « ...@60-40.jpg » (60 % depuis la gauche, 40 % depuis le haut).
@@ -16,7 +16,7 @@ const FOCAL = /@(\d{1,3})-(\d{1,3})(?=\.[a-z0-9]+$)/i;
 const SPORTS = [
   { id: "football", name: "Football", kind: "grid", hold: 0.9, fallback: FOOT, min: 4, fit: (n) => Math.min(24, Math.floor(n / 4) * 4) },
   { id: "handball", name: "Handball", kind: "side", hold: 0.6, fallback: HAND, min: 3, fit: (n) => Math.min(12, n) },
-  { id: "basket", name: "Basket", kind: "rows", hold: 0.6, fallback: BASKET, min: 4, fit: (n) => Math.min(16, Math.floor(n / 4) * 4) },
+  { id: "basket", folders: ["basketball", "basket"], name: "Basket", kind: "rows", hold: 0.6, fallback: BASKET, min: 4, fit: (n) => Math.min(16, Math.floor(n / 4) * 4) },
   { id: "football-americain", name: "Football US", full: "Football américain", kind: "mosaic", hold: 0.6, fallback: US, min: 5, fit: (n) => Math.min(13, 1 + Math.floor((n - 1) / 4) * 4) },
 ];
 
@@ -25,7 +25,7 @@ const strip = ({ src, w, h, i, fx, fy }) => ({ src, w, h, ...(i != null ? { i } 
 function fallbackSite() {
   return {
     hero: HERO.map(strip),
-    chapters: SPORTS.map(({ fallback, min, fit, ...s }) => ({ ...s, open: strip(fallback[0]), series: fallback.slice(1).map(strip) })),
+    chapters: SPORTS.map(({ fallback, min, fit, folders, ...s }) => ({ ...s, open: strip(fallback[0]), series: fallback.slice(1).map(strip) })),
     source: "selection",
   };
 }
@@ -89,6 +89,7 @@ async function folder(c, prefix) {
       src: BASE + o.Key.split("/").map(encodeURIComponent).join("/"),
       w: d.w,
       h: d.h,
+      t: new Date(o.LastModified).getTime(),
       ...(m ? { fx: Math.min(100, +m[1]), fy: Math.min(100, +m[2]) } : {}),
     };
   });
@@ -103,11 +104,13 @@ export async function getSite() {
   const c = client();
   if (!c) return site;
   try {
-    const [hero, ...sports] = await Promise.all(["hero", ...SPORTS.map((s) => s.id)].map((p) => folder(c, p)));
+    // Dossier R2 de chaque sport : son id, sauf mention contraire (le basket est rangé dans basketball/)
+    const read = async (names) => (await Promise.all(names.map((n) => folder(c, n)))).flat().sort((a, b) => b.t - a.t);
+    const [hero, ...sports] = await Promise.all([["hero"], ...SPORTS.map((s) => s.folders || [s.id])].map(read));
     const used = [];
     const heroL = hero.filter(landscape);
     if (heroL.length) { site.hero = heroL; used.push(`hero ${heroL.length}`); }
-    site.chapters = SPORTS.map(({ fallback, min, fit, ...s }, k) => {
+    site.chapters = SPORTS.map(({ fallback, min, fit, folders, ...s }, k) => {
       const photos = sports[k];
       const open = photos.find(landscape);
       const portraits = photos.filter(portrait);

@@ -5,7 +5,7 @@ Site portfolio de photographie sportive de Matthieu Jauneau (marque MATTJNO, mat
 ## Architecture
 - Next.js (App Router), page unique. `app/page.js` (serveur) lit les photos dans R2 via `app/_site/data.js` et rend `app/_site/Portfolio.jsx` (client). Page régénérée toutes les 5 minutes (`revalidate = 300`).
 - Photos hébergées sur Cloudflare R2, bucket `mattjno-photos`, URL publique `https://pub-9350dce8a12e41c091a228ca7b1d7d48.r2.dev/`.
-- Dossiers du site dans R2 : `hero/`, `football/`, `handball/`, `basket/`, `football-americain/`. Matthieu y dépose ses exports sans les renommer. Les dossiers par match à la racine sont son archive, le site ne les lit pas.
+- Dossiers du site dans R2 : `hero/`, `football/`, `handball/`, `basketball/`, `football-americain/`. Matthieu y dépose ses exports sans les renommer. Les dossiers par match à la racine sont son archive, le site ne les lit pas.
 - Règles de `data.js` : dimensions lues dans l'en-tête des fichiers ; paysage le plus récent d'un sport = ouverture ; portraits = grille, du plus récent au plus ancien, coupée à des rangées complètes ; dossier vide ou incomplet = sélection d'origine (`app/_site/photos.js`). Point d'action facultatif dans le nom : `...@60-40.jpg`.
 - Pas de légendes sous les photos (choix de Matthieu, comme konradborzy.com).
 - `public/site.json` et `scripts/generate-manifests.mjs` ne servent plus au site (outils de prototype seulement). L'Action `update-manifest` est supprimée ; ses secrets R2 GitHub (lecture seule) peuvent être retirés.
