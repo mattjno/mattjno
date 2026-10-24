@@ -4,7 +4,7 @@ Sans tools/picks.json rempli : fabrique des planches contact de toutes les photo
 Avec des choix : pour chaque photo, détoure le joueur et produit les calques de l'effet
 (fond net, fond en flou de mouvement, joueur détouré, halo) dans public/proto/vitesse/.
 """
-import io, json, os, sys, urllib.request
+import io, json, os, sys, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
@@ -15,9 +15,13 @@ OUT = os.path.join(ROOT, "tools/out")
 PUB = os.path.join(ROOT, "public/proto/vitesse")
 
 
+ERRORS = []
+
+
 def fetch(src):
-    url = src.replace(" ", "%20")
-    with urllib.request.urlopen(url, timeout=120) as r:
+    url = urllib.parse.quote(src, safe=":/")
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36", "Accept": "image/*"})
+    with urllib.request.urlopen(req, timeout=120) as r:
         return Image.open(io.BytesIO(r.read())).convert("RGB")
 
 
@@ -30,7 +34,7 @@ def sheets():
             im.thumbnail((th * 2, th))
             return i, im
         except Exception as e:  # noqa
-            print("échec", i, e)
+            ERRORS.append(f"{i} {PHOTOS[i]['src']} {type(e).__name__}: {e}")
             return i, None
     with ThreadPoolExecutor(8) as ex:
         thumbs = dict(ex.map(thumb, range(len(PHOTOS))))
@@ -50,6 +54,7 @@ def sheets():
                 sheet.paste(im, (x + 4, y + 4))
             ImageDraw.Draw(sheet).text((x + 6, y + th + 4), f"#{i}", fill="black", font=font)
         sheet.save(os.path.join(OUT, f"planche-{s // per:02d}.jpg"), quality=72)
+    open(os.path.join(OUT, "erreurs.txt"), "w").write("\n".join(ERRORS) or "aucune")
     json.dump([{"i": i, "src": p["src"], "w": p["w"], "h": p["h"], "album": p["album"]} for i, p in enumerate(PHOTOS)],
               open(os.path.join(OUT, "index.json"), "w"), ensure_ascii=False, indent=0)
 
