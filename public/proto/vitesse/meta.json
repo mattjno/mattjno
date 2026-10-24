@@ -1,0 +1,34 @@
+[
+ {
+  "n": 1,
+  "w": 1120,
+  "h": 1400,
+  "album": "2026-01-30-CreteilvsIstres",
+  "name": "DSC06409.jpg",
+  "coverage": 0.12
+ },
+ {
+  "n": 2,
+  "w": 1600,
+  "h": 2000,
+  "album": "2026-05-31-US Ivry vs Pau Billière",
+  "name": "_DSC3641ps.jpg",
+  "coverage": 0.19
+ },
+ {
+  "n": 3,
+  "w": 1600,
+  "h": 2000,
+  "album": "2026-07-05-Paris Musketeers vs Frankfurt Galaxy",
+  "name": "_DSC3489.jpg",
+  "coverage": 0.258
+ },
+ {
+  "n": 4,
+  "w": 1600,
+  "h": 2000,
+  "album": "2026-04-26-OLBvsChallans",
+  "name": "_DSC4712.jpg",
+  "coverage": 0.26
+ }
+]
