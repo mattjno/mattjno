@@ -1,0 +1,28 @@
+name: Prototype (vignettes de contrôle)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [design/motion-proto]
+    paths: ["tools/vignettes.json", "tools/vignettes.py", ".github/workflows/proto-vignettes.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pillow
+      - run: python tools/vignettes.py
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/out/vignettes
+          git diff --cached --quiet || git commit -m "Prototype : vignettes de contrôle"
+          git push
