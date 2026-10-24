@@ -19,9 +19,16 @@ const LOCAL = process.env.NEXT_PUBLIC_LOCAL_IMG === "1";
 const CHAPTERS = [
   { id: "football", name: "Football", open: FOOT[0], series: FOOT.slice(1), kind: "grid" },
   { id: "handball", name: "Handball", open: HAND[0], series: HAND.slice(1), kind: "side" },
-  { id: "basket", name: "Basket", open: BASKET[0], series: BASKET.slice(1), kind: "columns" },
-  { id: "football-americain", name: "Football US", full: "Football américain", open: US[0], series: US.slice(1), kind: "zoom" },
+  { id: "basket", name: "Basket", open: BASKET[0], series: BASKET.slice(1), kind: "pile" },
+  { id: "football-americain", name: "Football US", full: "Football américain", open: US[0], series: US.slice(1), kind: "mosaic" },
 ];
+
+const MOVES = [
+  { id: "pile", label: "Pile" },
+  { id: "rows", label: "Rangées" },
+  { id: "mosaic", label: "Mosaïque" },
+];
+const DEFAULT_KINDS = { basket: "pile", "football-americain": "mosaic" };
 
 const clubs = (list) => [...new Set(list.map((p) => p.match))];
 
@@ -80,42 +87,53 @@ function Side({ ch }) {
   );
 }
 
-function Columns({ ch }) {
-  const cols = [[], [], [], []];
-  ch.series.forEach((p, i) => cols[i % 4].push(p));
+function Pile({ ch }) {
+  const items = ch.series.slice(0, 12);
   return (
-    <div className="co">
-      <div className="co-stage">
-        {cols.map((col, c) => (
-          <div className={`co-col${c % 2 === 1 ? " co-col--down" : ""}`} key={c}>
-            {col.map((p) => (
-              <figure className="co-item" key={p.src}>
-                <div className="co-frame hv"><div className="pf-fill"><Pic p={p} sizes="(min-width: 760px) 24vw, 48vw" /></div></div>
-                <figcaption className="cap"><span>{p.match}</span><span>{p.date}</span></figcaption>
-              </figure>
-            ))}
-          </div>
-        ))}
+    <div className="pi">
+      <div className="pi-stage">
+        <div className="pi-grid">
+          {items.map((p, k) => (
+            <figure className="pi-item" key={p.src} style={{ zIndex: items.length - k }}>
+              <div className="pi-frame hv"><div className="pf-fill"><Pic p={p} sizes="(min-width: 760px) 18vw, 48vw" /></div></div>
+            </figure>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-function Zoom({ ch }) {
-  const cells = ch.series.slice(0, 8);
-  const FOCUS = 5;
-  const center = cells[FOCUS];
+function Rows({ ch }) {
+  const rows = [];
+  for (let k = 0; k < ch.series.length; k += 4) rows.push(ch.series.slice(k, k + 4));
   return (
-    <div className="zg">
-      <div className="zg-stage">
-        <div className="zg-grid">
-          {cells.map((p, i) => (
-            <div className={`zg-cell hv${i === FOCUS ? " zg-cell--center" : ""}`} key={p.src}>
-              <div className="pf-fill"><Pic p={p} sizes={i === FOCUS ? "(min-width: 760px) 70vw, 100vw" : "25vw"} quality={i === FOCUS ? 85 : 75} /></div>
-            </div>
+    <div className="ro">
+      {rows.map((row, r) => (
+        <div className="ro-row" key={r} data-dir={r % 2 === 0 ? -1 : 1}>
+          {row.map((p) => (
+            <figure className="ro-item" key={p.src}>
+              <div className="ro-frame hv"><div className="pf-fill"><Pic p={p} sizes="(min-width: 760px) 24vw, 48vw" /></div></div>
+              <figcaption className="cap"><span>{p.match}</span><span>{p.date}</span></figcaption>
+            </figure>
           ))}
         </div>
-        <p className="zg-cap"><strong>{center.match}</strong><span>{center.date}</span></p>
+      ))}
+    </div>
+  );
+}
+
+function Mosaic({ ch }) {
+  const items = ch.series.slice(0, 9);
+  return (
+    <div className="mo">
+      <div className="mo-grid">
+        {items.map((p, k) => (
+          <figure className={`mo-item${k === 0 ? " mo-feature" : ""}`} key={p.src}>
+            <div className="mo-frame hv"><div className="pf-fill"><Pic p={p} sizes={k === 0 ? "(min-width: 760px) 50vw, 100vw" : "(min-width: 760px) 24vw, 48vw"} quality={k === 0 ? 85 : 78} /></div></div>
+            <figcaption className="cap"><span>{p.match}</span><span>{p.date}</span></figcaption>
+          </figure>
+        ))}
       </div>
     </div>
   );
@@ -128,6 +146,23 @@ export default function Portfolio() {
   const [slide, setSlide] = useState(0);
   const [type, setType] = useState("sans");
   const [cstatus, setCstatus] = useState("idle");
+  const [kinds, setKinds] = useState(null);
+
+  // Mouvements de basket et de football américain choisis dans la barre du prototype (?basket=…&us=…)
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const ok = (v) => MOVES.some((m) => m.id === v);
+    setKinds({
+      basket: ok(sp.get("basket")) ? sp.get("basket") : DEFAULT_KINDS.basket,
+      "football-americain": ok(sp.get("us")) ? sp.get("us") : DEFAULT_KINDS["football-americain"],
+    });
+  }, []);
+  const kindOf = (ch) => (kinds && kinds[ch.id]) || DEFAULT_KINDS[ch.id] || ch.kind;
+  const choose = (key, val) => {
+    const sp = new URLSearchParams(window.location.search);
+    sp.set(key, val);
+    window.location.search = sp.toString();
+  };
 
   useEffect(() => {
     let id = null;
@@ -140,6 +175,7 @@ export default function Portfolio() {
   }, []);
 
   useEffect(() => {
+    if (!kinds) return;
     gsap.registerPlugin(ScrollTrigger);
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
     window.scrollTo(0, 0);
@@ -255,47 +291,48 @@ export default function Portfolio() {
         });
       }
 
-      // ---------- Basket : colonnes à contre-sens ----------
-      const co = q(".co")[0];
-      if (co && wide) {
-        const cols = co.querySelectorAll(".co-col");
-        const travel = (col) => Math.max(0, col.scrollHeight - window.innerHeight + 80);
-        cols.forEach((col, c) => {
-          const down = c % 2 === 1;
-          gsap.fromTo(col, { y: () => (down ? -travel(col) : 40) }, {
-            y: () => (down ? 40 : -travel(col)), ease: "none",
-            scrollTrigger: { trigger: co, start: "top top", end: "bottom bottom", scrub: true, invalidateOnRefresh: true },
-          });
+      // ---------- La pile qui s'étale ----------
+      q(".pi").forEach((pi) => {
+        if (!wide) return;
+        const grid = pi.querySelector(".pi-grid");
+        const items = [...pi.querySelectorAll(".pi-item")];
+        const tl = gsap.timeline({ scrollTrigger: { trigger: pi, start: "top top", end: "bottom bottom", scrub: true, invalidateOnRefresh: true }, defaults: { ease: "none" } });
+        tl.to({}, { duration: 0.12 });
+        items.forEach((it, k) => {
+          const rot = ((k * 37) % 17) - 8;
+          tl.fromTo(it, {
+            x: () => grid.clientWidth / 2 - (it.offsetLeft + it.offsetWidth / 2),
+            y: () => grid.clientHeight / 2 - (it.offsetTop + it.offsetHeight / 2),
+            rotation: rot, scale: 1.15,
+          }, { x: 0, y: 0, rotation: 0, scale: 1, duration: 0.5 }, 0.12 + k * 0.035);
         });
-      }
+        tl.to({}, { duration: 0.15 });
+      });
 
-      // ---------- Football américain : la grille plonge dans la photo centrale ----------
-      const zg = q(".zg")[0];
-      if (zg) {
-        const grid = zg.querySelector(".zg-grid");
-        const cell = zg.querySelector(".zg-cell--center");
-        const stage = zg.querySelector(".zg-stage");
-        const target = () => Math.min((window.innerHeight * 0.84) / cell.offsetHeight, (window.innerWidth * 0.92) / cell.offsetWidth);
-        const origin = () => `${cell.offsetLeft + cell.offsetWidth / 2}px ${cell.offsetTop + cell.offsetHeight / 2}px`;
-        const dx = () => stage.clientWidth / 2 - (grid.offsetLeft + cell.offsetLeft + cell.offsetWidth / 2);
-        const dy = () => stage.clientHeight / 2 - (grid.offsetTop + cell.offsetTop + cell.offsetHeight / 2);
-        gsap.set(grid, { transformOrigin: origin });
-        const tl = gsap.timeline({ scrollTrigger: { trigger: zg, start: "top top", end: "bottom bottom", scrub: true, invalidateOnRefresh: true, onRefreshInit: () => gsap.set(grid, { transformOrigin: origin() }) }, defaults: { ease: "none" } });
-        tl.to({}, { duration: 0.15 })
-          .to(grid, { scale: target, x: dx, y: dy, duration: 0.7 })
-          .to(zg.querySelectorAll(".zg-cell:not(.zg-cell--center)"), { opacity: 0, duration: 0.3 }, 0.5)
-          .to(zg.querySelector(".zg-cap"), { opacity: 1, duration: 0.15 }, 0.75)
-          .to({}, { duration: 0.15 });
-      }
+      // ---------- Les rangées qui glissent ----------
+      q(".ro-row").forEach((row) => {
+        const dir = Number(row.dataset.dir);
+        gsap.fromTo(row, { xPercent: dir * (wide ? 38 : 20) }, {
+          xPercent: 0, ease: "none",
+          scrollTrigger: { trigger: row, start: "top bottom", end: "top 40%", scrub: true },
+        });
+      });
+
+      // ---------- La mosaïque ----------
+      q(".mo").forEach((mo) => {
+        ScrollTrigger.batch(mo.querySelectorAll(".mo-item"), {
+          start: "top 90%", once: true,
+          onEnter: (batch) => {
+            gsap.fromTo(batch.map((b) => b.querySelector(".mo-frame")), { clipPath: "inset(50% 50% 50% 50%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.2, stagger: 0.09, ease: "expo.out" });
+            gsap.fromTo(batch.map((b) => b.querySelector(".pf-fill")), { scale: 1.3 }, { scale: 1, duration: 1.6, stagger: 0.09, ease: "expo.out" });
+            gsap.fromTo(batch.map((b) => b.querySelector(".cap")), { opacity: 0 }, { opacity: 1, duration: 0.8, delay: 0.4, stagger: 0.09 });
+          },
+        });
+      });
 
       // ---------- Contact ----------
-      ScrollTrigger.create({
-        trigger: q(".k")[0], start: "top 40px", end: "bottom 40px",
-        onToggle: (s) => navRef.current && navRef.current.classList.toggle("is-paper", s.isActive),
-      });
-      gsap.from(q(".k__intro > *, .k__form > *"), { y: 24, opacity: 0, duration: 0.8, stagger: 0.06, ease: "expo.out", scrollTrigger: { trigger: q(".k")[0], start: "top 70%", onRefresh: settleIfUnreachable } });
-      gsap.from(q(".k__handle > span"), { yPercent: 100, duration: 1.1, stagger: 0.04, ease: "expo.out", scrollTrigger: { trigger: q(".k__handle")[0], start: "top 95%", onRefresh: settleIfUnreachable } });
-      gsap.from(q(".f__mark span"), { yPercent: 100, duration: 1.1, stagger: 0.05, ease: "expo.out", scrollTrigger: { trigger: q(".f")[0], start: "top 90%", onRefresh: settleIfUnreachable } });
+      gsap.from(q(".kc-intro > *, .kc-form > *"), { y: 24, opacity: 0, duration: 0.8, stagger: 0.06, ease: "expo.out", scrollTrigger: { trigger: q(".kc")[0], start: "top 75%", onRefresh: settleIfUnreachable } });
+      gsap.from(q(".kc .k__handle > span"), { yPercent: 100, duration: 1.1, stagger: 0.04, ease: "expo.out", scrollTrigger: { trigger: q(".kc .k__handle")[0], start: "top 95%", onRefresh: settleIfUnreachable } });
     }, root);
 
     return () => {
@@ -303,7 +340,7 @@ export default function Portfolio() {
       if (lenis) { gsap.ticker.remove(tick); lenis.destroy(); }
       lenisRef.current = null;
     };
-  }, []);
+  }, [kinds]);
 
   useEffect(() => { ScrollTrigger.refresh(); }, [type]);
 
@@ -367,55 +404,44 @@ export default function Portfolio() {
         {CHAPTERS.map((ch) => (
           <section key={ch.id} id={ch.id} aria-labelledby={`${ch.id}-h`}>
             <Opener ch={ch} />
-            {ch.kind === "grid" && <Grid ch={ch} />}
-            {ch.kind === "side" && <Side ch={ch} />}
-            {ch.kind === "columns" && <Columns ch={ch} />}
-            {ch.kind === "zoom" && <Zoom ch={ch} />}
+            {kindOf(ch) === "grid" && <Grid ch={ch} />}
+            {kindOf(ch) === "side" && <Side ch={ch} />}
+            {kindOf(ch) === "pile" && <Pile ch={ch} />}
+            {kindOf(ch) === "rows" && <Rows ch={ch} />}
+            {kindOf(ch) === "mosaic" && <Mosaic ch={ch} />}
           </section>
         ))}
 
-        <section className="k" id="contact" aria-labelledby="k-h">
-          <div className="k__top">
-            <div className="k__intro">
+        <section className="kc" id="contact" aria-labelledby="k-h">
+          <div className="kc-top">
+            <div className="kc-intro">
               <h2 className="p-head p-switch" id="k-h">Contact</h2>
               <p>Un match, une campagne, une saison à couvrir ? Écrivez-moi.</p>
             </div>
-            <form className="k__form" onSubmit={submitContact} data-ui>
-              <label className="k__field">Nom<input name="name" required autoComplete="name" /></label>
-              <label className="k__field">Email<input name="email" type="email" required autoComplete="email" /></label>
-              <label className="k__field">Message<textarea name="message" rows={3} required /></label>
+            <form className="kc-form" onSubmit={submitContact} data-ui>
+              <label className="kc-field">Nom<input name="name" required autoComplete="name" /></label>
+              <label className="kc-field">Email<input name="email" type="email" required autoComplete="email" /></label>
+              <label className="kc-field">Message<textarea name="message" rows={3} required /></label>
               <div>
-                <button className="k__btn" type="submit" disabled={cstatus === "sending"}>
+                <button className="kc-btn" type="submit" disabled={cstatus === "sending"}>
                   {cstatus === "sending" ? "Envoi…" : cstatus === "ok" ? "Message envoyé" : "Envoyer le message"}
                 </button>
               </div>
-              {cstatus === "error" && <p className="k__field">L'envoi a échoué. Réessayez ou écrivez sur Instagram.</p>}
+              {cstatus === "error" && <p className="kc-field">L'envoi a échoué. Réessayez ou écrivez sur Instagram.</p>}
             </form>
           </div>
-          <div>
-            <a className="k__handle" href={INSTAGRAM} target="_blank" rel="noopener noreferrer" aria-label="Instagram @matt.jno">
-              {"@matt.jno".split("").map((c, i) => <span key={i} aria-hidden="true"><span>{c}</span></span>)}
-            </a>
-            <div className="k__bottom">
-              <span>Basé à Paris</span>
-              <span>Football, handball, basket, football américain</span>
-            </div>
-          </div>
+          <a className="k__handle" href={INSTAGRAM} target="_blank" rel="noopener noreferrer" aria-label="Instagram @matt.jno">
+            {"@matt.jno".split("").map((c, i) => <span key={i} aria-hidden="true"><span>{c}</span></span>)}
+          </a>
         </section>
       </main>
 
-      <footer className="f">
-        <div className="f__mark" aria-label="MATT.JNO">
-          {"MATT.JNO".split("").map((c, i) => <span key={i} aria-hidden="true">{c}</span>)}
-        </div>
-        <div className="f__row">
-          <span>© 2026 MATT.JNO, photographe de sport</span>
-          <nav aria-label="Pied de page">
-            <a href={INSTAGRAM} target="_blank" rel="noopener noreferrer">Instagram</a>
-            <button onClick={() => go("contact")}>Contact</button>
-            <button onClick={() => go("top")}>Haut de page</button>
-          </nav>
-        </div>
+      <footer className="kc-foot">
+        <span>© 2026 MATT.JNO, photographe de sport, Paris</span>
+        <nav aria-label="Pied de page">
+          <a href={INSTAGRAM} target="_blank" rel="noopener noreferrer">Instagram</a>
+          <button onClick={() => go("top")}>Haut de page</button>
+        </nav>
       </footer>
 
       <div className="p-tools" role="toolbar" aria-label="Options du prototype">
@@ -423,6 +449,16 @@ export default function Portfolio() {
         <button aria-pressed={type === "sans"} onClick={() => setType("sans")}>Sans</button>
         <button aria-pressed={type === "serif"} onClick={() => setType("serif")}>Serif</button>
         <button onClick={() => { try { sessionStorage.removeItem("mj-intro"); } catch {} window.scrollTo(0, 0); window.location.reload(); }}>Rejouer l'intro</button>
+      </div>
+      <div className="p-tools p-tools--moves" role="toolbar" aria-label="Mouvements à comparer">
+        {[["basket", "Basket", "basket"], ["us", "Foot US", "football-americain"]].map(([key, label, id]) => (
+          <div className="p-tools__group" key={key}>
+            <span>{label}</span>
+            {MOVES.map((m) => (
+              <button key={m.id} aria-pressed={kindOf({ id }) === m.id} onClick={() => choose(key, m.id)}>{m.label}</button>
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   );
