@@ -42,3 +42,6 @@ Site portfolio de photographie sportive de Matthieu Jauneau (marque MATTJNO, mat
 - Grilles par sport : football en grille décalée, handball en galerie latérale (3 de front sur grand écran), basket en rangées qui glissent, football américain en mosaïque. Nombre de photos choisi pour ne laisser aucune case vide.
 - Aucune photo rognée au repos. Visionneuse plein écran au clic : la photo grandit depuis sa vignette, entière.
 - Scènes tenues seulement sur grand écran (`min-width: 1024px` et `min-height: 560px`). La tablette en portrait suit le téléphone.
+- Au doigt (téléphone, tablette), les animations ne suivent pas le défilement : l'élan les ferait passer en un éclair. L'ouverture se joue d'elle-même en 1,3 s dès que la fenêtre est à l'écran, et se referme si l'on remonte. Rangées basket et galerie handball entrent en cascade.
+- Mouvement réduit (réglage du système) : apparitions en fondu, aucun déplacement.
+- À partir de 1 700 px : 5 photos de front (football, basket, mosaïque) ; les photos en surplus sont masquées pour ne laisser aucune case vide.
