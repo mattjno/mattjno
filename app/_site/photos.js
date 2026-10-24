@@ -67,3 +67,15 @@ export const US = [
   {"src":"https://pub-9350dce8a12e41c091a228ca7b1d7d48.r2.dev/2026-07-05-Paris Musketeers vs Frankfurt Galaxy/_DSC2947.jpg","w":5760,"h":7200,"i":7,"match":"Paris Musketeers – Frankfurt Galaxy","date":"5 juillet 2026"},
   {"src":"https://pub-9350dce8a12e41c091a228ca7b1d7d48.r2.dev/2026-07-05-Paris Musketeers vs Frankfurt Galaxy/_DSC2507.jpg","w":3399,"h":4249,"i":6,"match":"Paris Musketeers – Frankfurt Galaxy","date":"5 juillet 2026"},
 ];
+
+// Paysages d'appoint de la sélection d'origine, affichés seulement tant que le dossier R2 du sport est vide :
+// ouvertures en fondu (photos du hero de l'accueil) et un paysage dans la galerie football (n°193, 1 400 px de
+// large, assez pour deux cases). [position dans la galerie, photo]
+export const EXTRA = {
+  football: {
+    slides: [HERO[0], HERO[2]],
+    series: [[4, {"src":"https://pub-9350dce8a12e41c091a228ca7b1d7d48.r2.dev/2026-01-30-CreteilvsIstres/DSC06971.jpg","w":1400,"h":875,"i":193}]],
+  },
+  handball: { slides: [HERO[1]] },
+  basket: { slides: [HERO[3]] },
+};

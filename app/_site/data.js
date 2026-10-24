@@ -1,33 +1,43 @@
 // Côté serveur : lit les photos du site dans R2. Un dossier par rubrique : hero/, football/, handball/,
 // basketball/, football-americain/. Matthieu dépose ses exports sans les renommer ; le site lit lui-même leurs
-// dimensions. Paysage le plus récent d'un sport : ouverture du chapitre. Portraits : la grille, du plus récent
-// au plus ancien. Un dossier vide ou incomplet garde la sélection d'origine (photos.js).
+// dimensions. Dans un dossier sport : les 4 paysages les plus récents (hors panoramiques) ouvrent le chapitre en
+// fondu ; tout le reste (portraits, autres paysages, panoramiques) forme la galerie, du plus récent au plus ancien.
+// Un dossier vide ou incomplet garde la sélection d'origine (photos.js).
 // Point d'action facultatif dans le nom du fichier : « ...@60-40.jpg » (60 % depuis la gauche, 40 % depuis le haut).
 
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
 import { imageSize } from "image-size";
-import { HERO, FOOT, HAND, BASKET, US } from "./photos";
+import { HERO, FOOT, HAND, BASKET, US, EXTRA } from "./photos";
+import { span } from "./pack";
 
 const BASE = (process.env.NEXT_PUBLIC_PHOTO_BASE || "https://pub-9350dce8a12e41c091a228ca7b1d7d48.r2.dev/").replace(/\/?$/, "/");
 const IMG = /\.(jpe?g|png|webp)$/i;
 const FOCAL = /@(\d{1,3})-(\d{1,3})(?=\.[a-z0-9]+$)/i;
 
-// fit(n) : nombre de photos retenues pour remplir des rangées complètes ; min : seuil pour quitter la sélection d'origine
+// Paysages en ouverture de chapitre
+const SLIDES = 4;
+
+// cells : cases de galerie au plus (la mise en page coupe ensuite à des rangées complètes selon l'écran) ;
+// min : cases nécessaires pour quitter la sélection d'origine
 const SPORTS = [
-  { id: "football", name: "Football", kind: "grid", hold: 0.9, fallback: FOOT, min: 4, fit: (n) => Math.min(24, Math.floor(n / 4) * 4) },
-  { id: "basket", folders: ["basketball", "basket"], name: "Basket", kind: "rows", hold: 0.6, fallback: BASKET, min: 4, fit: (n) => Math.min(16, Math.floor(n / 4) * 4) },
-  { id: "football-americain", name: "Football US", full: "Football américain", kind: "mosaic", hold: 0.6, fallback: US, min: 5, fit: (n) => Math.min(13, 1 + Math.floor((n - 1) / 4) * 4) },
-  { id: "handball", name: "Handball", kind: "side", hold: 0.6, fallback: HAND, min: 3, fit: (n) => Math.min(12, n) },
+  { id: "football", name: "Football", kind: "grid", hold: 0.9, fallback: FOOT, cells: 24, min: 4 },
+  { id: "basket", folders: ["basketball", "basket"], name: "Basket", kind: "rows", hold: 0.6, fallback: BASKET, cells: 16, min: 4 },
+  { id: "football-americain", name: "Football US", full: "Football américain", kind: "mosaic", hold: 0.6, fallback: US, cells: 16, min: 5 },
+  { id: "handball", name: "Handball", kind: "side", hold: 0.6, fallback: HAND, cells: 12, min: 3 },
 ];
 
 const strip = ({ src, w, h, i, fx, fy }) => ({ src, w, h, ...(i != null ? { i } : {}), ...(fx != null ? { fx, fy } : {}) });
 
+// Sélection d'origine : ouverture + paysages d'appoint, galerie + paysages insérés à leur place
+function fallbackChapter({ fallback, min, folders, ...s }) {
+  const extra = EXTRA[s.id] || {};
+  const series = fallback.slice(1);
+  (extra.series || []).forEach(([k, p]) => series.splice(k, 0, p));
+  return { ...s, slides: [fallback[0], ...(extra.slides || [])].map(strip), series: series.map(strip) };
+}
+
 function fallbackSite() {
-  return {
-    hero: HERO.map(strip),
-    chapters: SPORTS.map(({ fallback, min, fit, folders, ...s }) => ({ ...s, open: strip(fallback[0]), series: fallback.slice(1).map(strip) })),
-    source: "selection",
-  };
+  return { hero: HERO.map(strip), chapters: SPORTS.map(fallbackChapter), source: "selection" };
 }
 
 function client() {
@@ -97,7 +107,6 @@ async function folder(c, prefix) {
 }
 
 const landscape = (p) => p.w > p.h * 1.1;
-const portrait = (p) => p.h > p.w * 1.1;
 
 export async function getSite() {
   const site = fallbackSite();
@@ -110,13 +119,16 @@ export async function getSite() {
     const used = [];
     const heroL = hero.filter(landscape);
     if (heroL.length) { site.hero = heroL; used.push(`hero ${heroL.length}`); }
-    site.chapters = SPORTS.map(({ fallback, min, fit, folders, ...s }, k) => {
+    site.chapters = SPORTS.map(({ fallback, min, folders, ...s }, k) => {
       const photos = sports[k];
-      const open = photos.find(landscape);
-      const portraits = photos.filter(portrait);
-      if (open && portraits.length >= min) {
-        used.push(`${s.id} ${1 + fit(portraits.length)}`);
-        return { ...s, open, series: portraits.slice(0, fit(portraits.length)) };
+      const wide = photos.filter(landscape);
+      const standard = wide.filter((p) => p.w / p.h < 2);
+      const slides = (standard.length ? standard : wide).slice(0, SLIDES);
+      const series = photos.filter((p) => !slides.includes(p) && span(p) > 0);
+      const cells = series.reduce((n, p) => n + span(p), 0);
+      if (slides.length && cells >= min) {
+        used.push(`${s.id} ${slides.length} + ${series.length}`);
+        return { ...s, slides: slides.map(strip), series: series.slice(0, s.cells + 8).map(strip) };
       }
       return site.chapters[k];
     });

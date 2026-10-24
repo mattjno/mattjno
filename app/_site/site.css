@@ -106,7 +106,13 @@ html.lenis, html.lenis body { height: auto; }
 .ch-open { position: relative; height: calc(100svh * (1 + var(--hold, 0.6))); }
 .ch-stage { position: sticky; top: 0; height: 100svh; overflow: clip; }
 .ch-win { position: absolute; inset: 0; will-change: clip-path; }
-.ch-win .pf-fill { will-change: transform; }
+/* Paysages du sport en fondu enchaîné, comme le hero de l'accueil. La première photo reste celle de l'ouverture. */
+.ch-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1.4s ease; }
+.ch-slide.is-on { opacity: 1; }
+.ch-slide:first-child .pf-fill { will-change: transform; }
+@media (prefers-reduced-motion: no-preference) {
+  .ch-slide.is-on:not(:first-child) .pf-fill { animation: p-kb 7s cubic-bezier(0.33, 1, 0.68, 1) forwards; }
+}
 .ch-scrim { position: absolute; inset: auto 0 0 0; height: 45%; background: rgba(8, 8, 8, 0.5); opacity: 0; pointer-events: none; mask-image: linear-gradient(to top, #000 35%, transparent); -webkit-mask-image: linear-gradient(to top, #000 35%, transparent); } /* taste-skill-ignore: scrim neutre sous le titre */
 .ch-text {
   position: absolute; left: var(--margin); right: var(--margin); bottom: clamp(24px, 6vh, 56px); z-index: 2;
@@ -135,68 +141,56 @@ html.lenis, html.lenis body { height: auto; }
 @media (hover: hover) and (pointer: fine) { .hv:hover::after { opacity: 1; transform: none; } }
 .hv:focus-visible::after { opacity: 1; transform: none; }
 
-/* ---------- Football : grille de 4 portraits, colonnes décalées ---------- */
-.fg { padding: clamp(96px, 14vh, 160px) var(--margin) clamp(64px, 10vh, 120px); }
-.fg-grid { display: grid; grid-template-columns: repeat(4, 1fr); column-gap: clamp(10px, 1.2vw, 18px); row-gap: clamp(28px, 4vh, 48px); align-items: start; }
-.fg-item { margin: 0; }
-.fg-item:nth-child(4n + 2), .fg-item:nth-child(4n + 4) { margin-top: clamp(40px, 8vh, 96px); }
-.fg-frame { aspect-ratio: 3 / 4; }
+/* ---------- Galeries en grille : football, basket (rangées qui glissent), football américain (mosaïque) ----------
+   Une case a la largeur d'une colonne et la hauteur d'un portrait 3:4. Portrait : 1 case ; paysage : 2 cases ;
+   panoramique : 3 cases, à la même hauteur. Seul sur sa rangée (téléphone), un paysage garde son format d'origine.
+   Colonnes : 2, 4, puis 5 sur grand écran ; la page en impose moins quand les photos manquent (--cols en ligne). */
+.fg, .ro, .mo { padding: clamp(96px, 14vh, 160px) var(--margin) clamp(64px, 10vh, 120px); }
+.ro { overflow-x: clip; }
+.fg-grid, .ro-grid, .mo-grid {
+  --cols: 4;
+  --gap: clamp(10px, 1.2vw, 18px);
+  display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  column-gap: var(--gap); row-gap: clamp(28px, 4vh, 48px);
+  container-type: inline-size;
+}
+@media (max-width: 759px) { .fg-grid, .ro-grid, .mo-grid { --cols: 2; } }
+@media (min-width: 1700px) { .fg-grid, .ro-grid, .mo-grid { --cols: 5; } }
+.fg-item, .ro-item, .mo-item { margin: 0; grid-column: span var(--s, 1); }
+.fg-frame, .ro-frame, .mo-frame { height: calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols) * 4 / 3); }
+.is-full > .pf-btn { height: auto; aspect-ratio: var(--r); }
+.ro-item { will-change: transform; }
+.mo-item { display: flex; flex-direction: column; }
+.mo-feature { grid-column: span 2; grid-row: span 2; }
+.mo-feature .mo-frame { height: auto; flex: 1; min-height: 0; }
 @media (max-width: 759px) {
-  .fg-grid { grid-template-columns: 1fr 1fr; }
-  .fg-item:nth-child(4n + 2), .fg-item:nth-child(4n + 4) { margin-top: 0; }
-  .fg-item:nth-child(2n) { margin-top: 48px; }
+  .mo-feature { grid-row: auto; }
+  .mo-feature .mo-frame { aspect-ratio: 3 / 4; flex: none; }
 }
 
-/* ---------- Handball : galerie latérale, trois grands portraits de front sur grand écran ---------- */
+/* ---------- Handball : galerie latérale, à la taille des autres grilles ---------- */
 .sg { position: relative; }
 .sg-stage { padding: clamp(72px, 10vh, 120px) 0 clamp(48px, 8vh, 96px); }
 .sg-window { clip-path: inset(0 var(--margin)); }
 .sg-track {
   --gap: clamp(10px, 1.2vw, 18px);
-  display: flex; gap: var(--gap); list-style: none; margin: 0;
+  --pw: min(44vw, 260px); /* largeur d'un portrait ; un paysage prend la largeur de son format, à la même hauteur */
+  display: flex; align-items: center; gap: var(--gap); list-style: none; margin: 0;
   padding: 0 var(--margin); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--margin); scrollbar-width: none;
 }
 .sg-track::-webkit-scrollbar { display: none; }
-.sg-item { flex: 0 0 min(44vw, 260px); scroll-snap-align: start; }
+.sg-item { flex: 0 0 var(--pw); scroll-snap-align: start; }
+.sg-item.is-wide { flex-basis: min(calc(var(--pw) * 4 / 3 * var(--r)), calc(100vw - 2 * var(--margin))); }
 .sg-item figure { margin: 0; }
 .sg-frame { aspect-ratio: 3 / 4; }
-@media (min-width: 760px) { .sg-item { flex-basis: 30vw; } }
+.sg-item.is-wide .sg-frame { aspect-ratio: var(--r); }
+@media (min-width: 760px) { .sg-track { --pw: 30vw; } }
 .sg.is-pinned .sg-stage { position: sticky; top: 0; height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: 0; overflow: clip; }
 .sg.is-pinned .sg-track { overflow: visible; scroll-snap-type: none; will-change: transform; }
-/* Même taille que les grilles des autres sports : 4 de front, 5 sur grand écran */
-.sg.is-pinned .sg-item { flex-basis: min(calc((100vw - 2 * var(--margin) - 3 * var(--gap)) / 4), calc((100svh - 200px) * 0.75)); }
-@media (min-width: 1700px) { .sg.is-pinned .sg-item { flex-basis: min(calc((100vw - 2 * var(--margin) - 4 * var(--gap)) / 5), calc((100svh - 200px) * 0.75)); } }
-
-/* ---------- Basket : les rangées qui glissent ---------- */
-.ro { padding: clamp(96px, 14vh, 160px) var(--margin) clamp(64px, 10vh, 120px); overflow-x: clip; }
-.ro-grid { display: grid; grid-template-columns: repeat(4, 1fr); column-gap: clamp(10px, 1.2vw, 18px); row-gap: clamp(28px, 4vh, 48px); }
-.ro-item { margin: 0; will-change: transform; }
-.ro-frame { aspect-ratio: 3 / 4; }
-@media (max-width: 759px) { .ro-grid { grid-template-columns: 1fr 1fr; } }
-
-/* ---------- Football américain : la mosaïque ---------- */
-.mo { padding: clamp(96px, 14vh, 160px) var(--margin) clamp(64px, 10vh, 120px); }
-.mo-grid { display: grid; grid-template-columns: repeat(4, 1fr); column-gap: clamp(10px, 1.2vw, 18px); row-gap: clamp(28px, 4vh, 48px); }
-.mo-item { margin: 0; display: flex; flex-direction: column; }
-.mo-frame { aspect-ratio: 3 / 4; }
-.mo-feature { grid-column: span 2; grid-row: span 2; }
-.mo-feature .mo-frame { aspect-ratio: auto; flex: 1; min-height: 0; }
-@media (max-width: 759px) {
-  .mo-grid { grid-template-columns: 1fr 1fr; }
-  .mo-feature { grid-row: auto; }
-  .mo-feature .mo-frame { aspect-ratio: 3 / 4; flex: none; }
-}
-
-/* ---------- Grand écran : 5 photos de front ---------- */
-@media (min-width: 1700px) {
-  .fg-grid, .ro-grid, .mo-grid { grid-template-columns: repeat(5, 1fr); }
-  .fg-item:nth-child(4n + 2), .fg-item:nth-child(4n + 4) { margin-top: 0; }
-  .fg-item:nth-child(5n + 2), .fg-item:nth-child(5n + 4) { margin-top: clamp(40px, 8vh, 96px); }
-  .pf-x5 { display: none; }
-  .fg-grid.pf-keep4, .ro-grid.pf-keep4, .mo-grid.pf-keep4 { grid-template-columns: repeat(4, 1fr); }
-  .pf-keep4 .fg-item:nth-child(5n + 2), .pf-keep4 .fg-item:nth-child(5n + 4) { margin-top: 0; }
-  .pf-keep4 .fg-item:nth-child(4n + 2), .pf-keep4 .fg-item:nth-child(4n + 4) { margin-top: clamp(40px, 8vh, 96px); }
-}
+/* Même taille que les grilles des autres sports : 4 portraits de front, 5 sur grand écran */
+.sg.is-pinned .sg-track { --pw: min(calc((100vw - 2 * var(--margin) - 3 * var(--gap)) / 4), calc((100svh - 200px) * 0.75)); }
+@media (min-width: 1700px) { .sg.is-pinned .sg-track { --pw: min(calc((100vw - 2 * var(--margin) - 4 * var(--gap)) / 5), calc((100svh - 200px) * 0.75)); } }
+.sg.is-pinned .sg-item.is-wide { flex-basis: calc(var(--pw) * 4 / 3 * var(--r)); }
 
 /* ---------- Contact : une seule fin, sur fond noir ---------- */
 .kc { padding: clamp(96px, 12vh, 160px) var(--margin) clamp(96px, 14vh, 160px); display: flex; flex-direction: column; gap: clamp(80px, 12vh, 140px); }

@@ -3,35 +3,86 @@
 // Version A : la v3 corrigée et resserrée. Un chapitre par sport, une fenêtre qui s'ouvre depuis le geste,
 // une grille par sport, une visionneuse plein écran. Les photos ne sont jamais modifiées : seuls leurs cadres bougent.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import "@fontsource-variable/instrument-sans";
 import Viewer from "./Viewer";
+import { pack, span } from "./pack";
 import "./site.css";
 
 const INSTAGRAM = "https://instagram.com/matt.jno";
 const HERO_INTERVAL = 5500;
+// Ouvertures de chapitre : un peu plus vif qu'à l'accueil, on y passe moins de temps
+const CHAPTER_INTERVAL = 4500;
 const LOCAL = process.env.NEXT_PUBLIC_LOCAL_IMG === "1";
 // Grands écrans où les scènes tenues ont la place de jouer (la tablette en portrait suit le téléphone)
 const WIDE = "(min-width: 1024px) and (min-height: 560px)";
 
-// Grand écran : 5 photos de front au lieu de 4
+// Colonnes des galeries : 2 sur téléphone, 4, puis 5 sur grand écran
 const XL = "(min-width: 1700px)";
+const PHONE = "(max-width: 759px)";
 
 const SIZES = {
-  grid: "(min-width: 1700px) 19vw, (min-width: 760px) 24vw, 48vw",
+  1: "(min-width: 1700px) 19vw, (min-width: 760px) 24vw, 48vw",
+  2: "(min-width: 1700px) 39vw, (min-width: 760px) 49vw, 100vw",
+  3: "(min-width: 1700px) 59vw, (min-width: 760px) 74vw, 100vw",
   side: "(min-width: 1700px) 19vw, (min-width: 1024px) 24vw, (min-width: 760px) 30vw, 44vw",
-  rows: "(min-width: 1700px) 19vw, (min-width: 760px) 24vw, 48vw",
+  sideWide: "(min-width: 1024px) 60vw, 94vw",
   feature: "(min-width: 1700px) 40vw, (min-width: 760px) 50vw, 100vw",
 };
 
-// Photos masquées en 5 colonnes pour ne laisser aucune case vide (la grille garde 4 colonnes sous 5 photos)
-const cut5 = (n) => (n >= 5 ? Math.floor(n / 5) * 5 : n);
-const cut5Mosaic = (n) => { let s = n - 1; while (s > 0 && (4 + s) % 5 !== 0) s--; return s > 0 ? 1 + s : n; };
-const x5 = (k, limit) => (k >= limit ? " pf-x5" : "");
+const ratio = (p) => +(p.w / p.h).toFixed(4);
+
+// Galerie d'un chapitre pour `cols` colonnes. Trop peu de photos pour une rangée complète : on essaie avec moins de colonnes.
+function galleryOf(ch, cols) {
+  const base = { id: ch.id, sport: ch.full ?? ch.name };
+  if (ch.kind === "side") {
+    const items = ch.series.map((p) => ({ p, s: span(p) })).filter((x) => x.s > 0).slice(0, ch.cells);
+    return { ...base, cols, items };
+  }
+  for (const c of [...new Set([cols, 4, 2])].filter((c) => c <= cols)) {
+    const items = pack(ch.series, c, { rows: Math.floor(ch.cells / c), feature: ch.kind === "mosaic" });
+    if (items.length) return { ...base, cols: c, items };
+  }
+  return { ...base, cols, items: [] };
+}
+
+// Ouverture de chapitre : les paysages du sport se succèdent en fondu, comme à l'accueil, une fois la fenêtre
+// grande ouverte et tant qu'elle est à l'écran. Quand elle se referme, elle revient à sa première photo.
+function cycler(open) {
+  const slides = [...open.querySelectorAll(".ch-slide")];
+  slides.forEach((el, i) => el.classList.toggle("is-on", i === 0));
+  let cur = 0;
+  let timer = null;
+  let opened = false;
+  let seen = false;
+  const show = (i) => {
+    if (i === cur) return;
+    slides[cur].classList.remove("is-on");
+    slides[i].classList.add("is-on");
+    cur = i;
+  };
+  const next = () => {
+    const i = (cur + 1) % slides.length;
+    const img = slides[i].querySelector("img");
+    if (img && !img.complete) return; // pas encore chargée : on attend le tour suivant
+    show(i);
+  };
+  const sync = () => {
+    const run = slides.length > 1 && opened && seen && !document.hidden;
+    if (run && !timer) timer = setInterval(next, CHAPTER_INTERVAL);
+    else if (!run && timer) { clearInterval(timer); timer = null; }
+  };
+  return {
+    open(v) { if (v === opened) return; opened = v; if (!v) show(0); sync(); },
+    seen(v) { seen = v; sync(); },
+    sync,
+    stop() { clearInterval(timer); timer = null; },
+  };
+}
 
 function Pic({ p, sizes, priority = false, quality = 80, alt = "", focal = false }) {
   const src = LOCAL && p.i != null ? `/_local/v/${p.i}.jpg` : p.src;
@@ -61,20 +112,24 @@ function startWindow(fx = 50, fy = 50) {
 // Découpe à l'avancement p (0 : fenêtre de départ, 1 : plein écran)
 const insetAt = (s, p) => `inset(${s.map((v) => `${(v * (1 - p)).toFixed(3)}%`).join(" ")})`;
 
-function Opener({ ch }) {
-  const all = [ch.open, ...ch.series];
+function Opener({ ch, count }) {
+  const first = ch.slides[0];
   return (
-    <div className="ch-open" style={{ "--hold": ch.hold }} data-fx={ch.open.fx ?? 50} data-fy={ch.open.fy ?? 50}>
+    <div className="ch-open" style={{ "--hold": ch.hold }} data-fx={first.fx ?? 50} data-fy={first.fy ?? 50}>
       <div className="ch-stage">
         <div className="ch-win">
-          <div className="pf-fill" style={{ transformOrigin: `${ch.open.fx ?? 50}% ${ch.open.fy ?? 50}%` }}>
-            <Pic p={ch.open} sizes="100vw" quality={82} focal alt={`${ch.full ?? ch.name}, photo d'ouverture`} />
-          </div>
+          {ch.slides.map((p, i) => (
+            <div className={`ch-slide${i === 0 ? " is-on" : ""}`} key={p.src} aria-hidden={i > 0 ? "true" : undefined}>
+              <div className="pf-fill" style={{ transformOrigin: `${p.fx ?? 50}% ${p.fy ?? 50}%` }}>
+                <Pic p={p} sizes="100vw" quality={82} focal alt={i === 0 ? `${ch.full ?? ch.name}, photo d'ouverture` : ""} />
+              </div>
+            </div>
+          ))}
         </div>
         <div className="ch-scrim" />
         <div className="ch-text">
           <h2 className="ch-title" id={`${ch.id}-h`}>{ch.full ?? ch.name}</h2>
-          <p className="ch-meta"><strong>{all.length} photos</strong></p>
+          <p className="ch-meta"><strong>{count} photos</strong></p>
         </div>
       </div>
     </div>
@@ -82,44 +137,59 @@ function Opener({ ch }) {
 }
 
 // Vignette cliquable : ouvre la visionneuse
-function Frame({ ch, k, p, sizes, className, onOpen, register, quality = 80 }) {
+function Frame({ g, k, p, sizes, className, onOpen, register, quality = 80 }) {
   return (
     <button
       type="button"
       className={`${className} hv pf-btn`}
-      ref={register(ch.id, k)}
-      onClick={(e) => onOpen(ch, k, e.currentTarget, sizes)}
-      aria-label={`Agrandir la photo ${k + 1} sur ${ch.series.length}, ${ch.full ?? ch.name}`}
+      ref={register(g.id, k)}
+      onClick={(e) => onOpen(g, k, e.currentTarget, sizes)}
+      aria-label={`Agrandir la photo ${k + 1} sur ${g.items.length}, ${g.sport}`}
     >
-      <span className="pf-fill"><Pic p={p} sizes={sizes} quality={quality} /></span>
+      <span className="pf-fill"><Pic p={p} sizes={sizes} quality={quality} focal /></span>
     </button>
   );
 }
 
-function Grid({ ch, ...f }) {
+// Case de grille : portrait sur 1 colonne, paysage sur 2, panoramique sur 3, tous à la hauteur d'un portrait.
+// Seul sur sa rangée (téléphone), un paysage garde son format d'origine.
+function Tile({ g, k, x, pre, ...f }) {
+  const { p, s, feature } = x;
+  const full = !feature && s > 1 && s >= g.cols;
+  const sizes = feature ? SIZES.feature : SIZES[Math.min(s, 3)];
+  const cls = `${pre}-item${s > 1 && !feature ? " is-wide" : ""}${full ? " is-full" : ""}${feature ? " mo-feature" : ""}`;
   return (
-    <div className="fg">
-      <div className={`fg-grid${ch.series.length < 5 ? " pf-keep4" : ""}`}>
-        {ch.series.map((p, k) => (
-          <figure className={`fg-item${x5(k, cut5(ch.series.length))}`} key={p.src}>
-            <Frame ch={ch} k={k} p={p} sizes={SIZES.grid} className="fg-frame" {...f} />
-          </figure>
-        ))}
+    <figure className={cls} style={s > 1 && !feature ? { "--s": s, "--r": ratio(p) } : undefined}>
+      <Frame g={g} k={k} p={p} sizes={sizes} quality={feature ? 85 : 80} className={`${pre}-frame`} {...f} />
+    </figure>
+  );
+}
+
+// Football (grille), basket (rangées qui glissent), football américain (mosaïque)
+const PRE = { grid: "fg", rows: "ro", mosaic: "mo" };
+
+function Cells({ g, kind, cols, ...f }) {
+  const pre = PRE[kind];
+  return (
+    <div className={pre}>
+      <div className={`${pre}-grid`} style={g.cols !== cols ? { "--cols": g.cols } : undefined}>
+        {g.items.map((x, k) => <Tile key={x.p.src} g={g} k={k} x={x} pre={pre} {...f} />)}
       </div>
     </div>
   );
 }
 
-function Side({ ch, ...f }) {
+// Handball : galerie latérale, chaque photo à sa largeur naturelle pour une même hauteur
+function Side({ g, ...f }) {
   return (
     <div className="sg">
       <div className="sg-stage">
         <div className="sg-window">
           <ul className="sg-track">
-            {ch.series.map((p, k) => (
-              <li className="sg-item" key={p.src}>
+            {g.items.map(({ p, s }, k) => (
+              <li className={`sg-item${s > 1 ? " is-wide" : ""}`} key={p.src} style={s > 1 ? { "--r": ratio(p) } : undefined}>
                 <figure>
-                  <Frame ch={ch} k={k} p={p} sizes={SIZES.side} className="sg-frame" {...f} />
+                  <Frame g={g} k={k} p={p} sizes={s > 1 ? SIZES.sideWide : SIZES.side} className="sg-frame" {...f} />
                 </figure>
               </li>
             ))}
@@ -129,37 +199,6 @@ function Side({ ch, ...f }) {
     </div>
   );
 }
-
-function Rows({ ch, ...f }) {
-  const limit = cut5(ch.series.length);
-  return (
-    <div className="ro">
-      <div className={`ro-grid${ch.series.length < 5 ? " pf-keep4" : ""}`}>
-        {ch.series.map((p, k) => (
-          <figure className={`ro-item${x5(k, limit)}`} key={p.src}>
-            <Frame ch={ch} k={k} p={p} sizes={SIZES.rows} className="ro-frame" {...f} />
-          </figure>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Mosaic({ ch, ...f }) {
-  return (
-    <div className="mo">
-      <div className={`mo-grid${ch.series.length < 7 ? " pf-keep4" : ""}`}>
-        {ch.series.map((p, k) => (
-          <figure className={`mo-item${k === 0 ? " mo-feature" : ""}${x5(k, ch.series.length < 7 ? ch.series.length : cut5Mosaic(ch.series.length))}`} key={p.src}>
-            <Frame ch={ch} k={k} p={p} sizes={k === 0 ? SIZES.feature : SIZES.grid} quality={k === 0 ? 85 : 80} className="mo-frame" {...f} />
-          </figure>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const GALLERY = { grid: Grid, side: Side, rows: Rows, mosaic: Mosaic };
 
 export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
   const root = useRef(null);
@@ -176,12 +215,17 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
   const [cols, setCols] = useState(4);
 
   useEffect(() => {
-    const mq = window.matchMedia(XL);
-    const set = () => setCols(mq.matches ? 5 : 4);
+    const xl = window.matchMedia(XL);
+    const phone = window.matchMedia(PHONE);
+    const set = () => setCols(xl.matches ? 5 : phone.matches ? 2 : 4);
     set();
-    mq.addEventListener("change", set);
-    return () => mq.removeEventListener("change", set);
+    xl.addEventListener("change", set);
+    phone.addEventListener("change", set);
+    return () => { xl.removeEventListener("change", set); phone.removeEventListener("change", set); };
   }, []);
+
+  // Galeries rangées pour le nombre de colonnes de l'écran
+  const galleries = useMemo(() => CHAPTERS.map((ch) => galleryOf(ch, cols)), [CHAPTERS, cols]);
 
   const register = useCallback((id, k) => (el) => {
     if (el) frames.current.set(`${id}:${k}`, el);
@@ -215,6 +259,17 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
     }
     const nav = navRef.current;
 
+    // Fondus des ouvertures de chapitre, en pause quand l'onglet est caché
+    const cyclers = [];
+    const onVisibility = () => cyclers.forEach((c) => c.sync());
+    document.addEventListener("visibilitychange", onVisibility);
+    const watch = (open) => {
+      const c = cycler(open);
+      cyclers.push(c);
+      ScrollTrigger.create({ trigger: open, start: "top bottom", end: "bottom top", onToggle: (self) => c.seen(self.isActive) });
+      return c;
+    };
+
     const ctx = gsap.context(() => {
       const q = gsap.utils.selector(root);
 
@@ -235,8 +290,9 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
       });
       ScrollTrigger.create({ trigger: q(".p-hero")[0], start: "top top", end: "bottom 55%", onToggle: (self) => self.isActive && setActive(null) });
 
-      // Mouvement réduit : pas de déplacement, seulement des apparitions en fondu
+      // Mouvement réduit : pas de déplacement, seulement des apparitions en fondu (les ouvertures, déjà ouvertes, gardent leurs fondus)
       if (reduce) {
+        q(".ch-open").forEach((open) => watch(open).open(true));
         ScrollTrigger.batch(q(".fg-item, .ro-item, .mo-item, .sg-item, .ch-text"), {
           start: "top 92%", once: true,
           onEnter: (batch) => gsap.fromTo(batch, { opacity: 0 }, { opacity: 1, duration: 0.6, stagger: 0.05, ease: "power1.out" }),
@@ -258,6 +314,7 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
         const fill = open.querySelector(".ch-win .pf-fill");
         const fx = Number(open.dataset.fx);
         const fy = Number(open.dataset.fy);
+        const slides = watch(open);
 
         // La fenêtre s'ouvre depuis le geste jusqu'au plein écran. La découpe est calculée ici à chaque image :
         // laissée à l'interpolation de GSAP, elle perdait un côté ou se déformait selon l'arrondi des valeurs.
@@ -266,11 +323,12 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
         const paint = () => { win.style.clipPath = insetAt(start, state.p); };
         paint();
         if (wide) {
-          // Grand écran : la fenêtre suit le défilement
+          // Grand écran : la fenêtre suit le défilement ; grande ouverte (fin de l'ouverture), les photos se succèdent
           const tl = gsap.timeline({
             scrollTrigger: {
               trigger: open, start: "top top", end: "bottom bottom", scrub: true,
-              onRefresh: () => { start = startWindow(fx, fy); paint(); },
+              onUpdate: (self) => slides.open(self.progress > 0.8),
+              onRefresh: (self) => { start = startWindow(fx, fy); paint(); slides.open(self.progress > 0.8); },
             },
             defaults: { ease: "none" },
           });
@@ -282,13 +340,13 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
           // Téléphone et tablette : au doigt, l'élan ferait passer l'ouverture en un éclair. Elle se joue donc
           // d'elle-même, en un temps fixe, dès que la fenêtre est à l'écran, et se referme si l'on remonte.
           gsap.set(fill, { scale: 1.25 });
-          const tl = gsap.timeline({ paused: true });
+          const tl = gsap.timeline({ paused: true, onComplete: () => slides.open(true) });
           tl.to(state, { p: 1, duration: 1.3, ease: "power3.inOut", onUpdate: paint }, 0)
             .to(fill, { scale: 1, duration: 1.6, ease: "expo.out" }, 0)
             .to(open.querySelector(".ch-scrim"), { opacity: 1, duration: 0.6, ease: "power1.out" }, 0.7);
           ScrollTrigger.create({
             trigger: open, start: "top 40%",
-            onEnter: () => tl.play(), onLeaveBack: () => tl.reverse(),
+            onEnter: () => tl.play(), onLeaveBack: () => { slides.open(false); tl.reverse(); },
             onRefresh: () => { start = startWindow(fx, fy); paint(); },
           });
         }
@@ -297,22 +355,15 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
           scrollTrigger: { trigger: open, start: "top 70%" },
         });
 
-        // Football : la grille se dévoile rangée par rangée, colonnes décalées
+        // Football : la grille se dévoile rangée par rangée, chaque photo monte dans son cadre
         if (ch.kind === "grid") {
-          const fg = section.querySelector(".fg");
-          ScrollTrigger.batch(fg.querySelectorAll(".fg-item"), {
+          ScrollTrigger.batch(section.querySelectorAll(".fg-item"), {
             start: "top 92%", once: true,
             onEnter: (batch) => {
               gsap.fromTo(batch.map((b) => b.querySelector(".fg-frame")), { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.2, stagger: 0.08, ease: "expo.out" });
               gsap.fromTo(batch.map((b) => b.querySelector(".pf-fill")), { scale: 1.2 }, { scale: 1, duration: 1.5, stagger: 0.08, ease: "expo.out" });
-                          },
+            },
           });
-          if (wide) {
-            fg.querySelectorAll(".fg-item").forEach((item, k) => {
-              if (k % cols !== 1 && k % cols !== 3) return;
-              gsap.fromTo(item, { y: 0 }, { y: -60, ease: "none", scrollTrigger: { trigger: fg, start: "top bottom", end: "bottom top", scrub: true } });
-            });
-          }
         }
 
         // Handball : la verticale devient horizontale, la galerie défile plus vite que la page pour rester courte
@@ -388,6 +439,8 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
     document.fonts?.ready.then(() => ScrollTrigger.refresh());
 
     return () => {
+      cyclers.forEach((c) => c.stop());
+      document.removeEventListener("visibilitychange", onVisibility);
       ctx.revert();
       if (lenis) { gsap.ticker.remove(tick); lenis.destroy(); }
       lenisRef.current = null;
@@ -408,11 +461,11 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
   };
 
   // ---------- Visionneuse ----------
-  const openViewer = useCallback((ch, k, el, sizes) => {
+  const openViewer = useCallback((g, k, el, sizes) => {
     lock(true);
     setViewer({
-      list: ch.series, index: k, sport: ch.full ?? ch.name, sizes, source: el,
-      sourceFor: (j) => frames.current.get(`${ch.id}:${j}`),
+      list: g.items.map((x) => x.p), index: k, sport: g.sport, sizes, source: el,
+      sourceFor: (j) => frames.current.get(`${g.id}:${j}`),
       reduce: reduceRef.current,
     });
   }, []);
@@ -525,12 +578,14 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
           </div>
         </header>
 
-        {CHAPTERS.map((ch) => {
-          const G = GALLERY[ch.kind];
+        {CHAPTERS.map((ch, i) => {
+          const g = galleries[i];
           return (
             <section key={ch.id} id={ch.id} aria-labelledby={`${ch.id}-h`}>
-              <Opener ch={ch} />
-              <G ch={ch} onOpen={openViewer} register={register} />
+              <Opener ch={ch} count={ch.slides.length + g.items.length} />
+              {ch.kind === "side"
+                ? <Side g={g} onOpen={openViewer} register={register} />
+                : <Cells g={g} kind={ch.kind} cols={cols} onOpen={openViewer} register={register} />}
             </section>
           );
         })}
