@@ -36,6 +36,10 @@ const SIZES = {
 
 const ratio = (p) => +(p.w / p.h).toFixed(4);
 
+// Lettre O d'Instrument Sans en graisse 700, en em depuis l'origine du caractère : centre du trait gauche,
+// sa largeur à mi-hauteur, et cette mi-hauteur au-dessus de la ligne de base (mesuré au canevas).
+const O_STROKE = { x: 0.108, w: 0.155, y: 0.36 };
+
 // Galerie d'un chapitre pour `cols` colonnes. Trop peu de photos pour une rangée complète : on essaie avec moins de colonnes.
 function galleryOf(ch, cols) {
   const base = { id: ch.id, sport: ch.full ?? ch.name };
@@ -127,7 +131,7 @@ function Opener({ ch, count }) {
           ))}
         </div>
         <div className="ch-scrim" />
-        <div className="ch-text">
+        <div className={`ch-text${ch.kind === "grid" ? " is-bare" : ""}`}>
           <h2 className="ch-title" id={`${ch.id}-h`}>{ch.full ?? ch.name}</h2>
           <p className="ch-meta"><strong>{count} photos</strong></p>
         </div>
@@ -165,6 +169,21 @@ function Tile({ g, k, x, pre, ...f }) {
   );
 }
 
+// Football : le nom du sport en lettres géantes, découpées sur la grille. On plonge dans le O jusqu'à la révéler.
+function Dive({ word }) {
+  const half = Math.ceil(word.length / 2);
+  const a = word.slice(0, half);
+  const k = Math.max(0, a.indexOf("O"));
+  return (
+    <div className="fg-dive" aria-hidden="true">
+      <p className="fg-word">
+        <span className="fg-l">{a.slice(0, k)}<span className="fg-o">{a[k]}<i className="fg-base" /></span>{a.slice(k + 1)}</span>
+        <span className="fg-l">{word.slice(half)}</span>
+      </p>
+    </div>
+  );
+}
+
 // Football (grille), basket (rangées qui glissent), football américain (mosaïque)
 const PRE = { grid: "fg", rows: "ro", mosaic: "mo" };
 
@@ -172,6 +191,7 @@ function Cells({ g, kind, cols, ...f }) {
   const pre = PRE[kind];
   return (
     <div className={pre}>
+      {kind === "grid" && <Dive word={g.sport.toUpperCase()} />}
       <div className={`${pre}-grid`} style={g.cols !== cols ? { "--cols": g.cols } : undefined}>
         {g.items.map((x, k) => <Tile key={x.p.src} g={g} k={k} x={x} pre={pre} {...f} />)}
       </div>
@@ -355,15 +375,95 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
           scrollTrigger: { trigger: open, start: "top 70%" },
         });
 
-        // Football : la grille se dévoile rangée par rangée, chaque photo monte dans son cadre
+        // Football : on plonge dans le O du mot géant, découpé sur la grille, jusqu'à la révéler entière
         if (ch.kind === "grid") {
-          ScrollTrigger.batch(section.querySelectorAll(".fg-item"), {
+          const fg = section.querySelector(".fg");
+          const grid = fg.querySelector(".fg-grid");
+          const dive = fg.querySelector(".fg-dive");
+          const diving = dive && getComputedStyle(dive).display !== "none";
+
+          // Les photos du premier écran sont déjà visibles dans les lettres ; les suivantes montent dans leur cadre
+          const gridTop = grid.getBoundingClientRect().top;
+          const later = [...grid.querySelectorAll(".fg-item")].filter((el) => !diving || el.getBoundingClientRect().top - gridTop > window.innerHeight * 0.55);
+          ScrollTrigger.batch(later, {
             start: "top 92%", once: true,
             onEnter: (batch) => {
               gsap.fromTo(batch.map((b) => b.querySelector(".fg-frame")), { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.2, stagger: 0.08, ease: "expo.out" });
               gsap.fromTo(batch.map((b) => b.querySelector(".pf-fill")), { scale: 1.2 }, { scale: 1, duration: 1.5, stagger: 0.08, ease: "expo.out" });
             },
           });
+
+          if (diving) {
+            const o = dive.querySelector(".fg-o");
+            const base = dive.querySelector(".fg-base");
+            const word = dive.querySelector(".fg-word");
+            let geo = null;
+            // Le mot doit tomber sur des photos : s'il chevauche l'espace entre deux rangées, il se cale sur la plus proche
+            const place = (box) => {
+              word.style.transform = "";
+              const w = word.getBoundingClientRect();
+              const rows = [];
+              grid.querySelectorAll(".fg-frame").forEach((f) => {
+                const r = f.getBoundingClientRect();
+                if (r.top < box.bottom && !rows.some((x) => Math.abs(x.top - r.top) < 2)) rows.push({ top: r.top, bottom: r.bottom });
+              });
+              if (!rows.length || rows.some((r) => w.top >= r.top && w.bottom <= r.bottom)) return;
+              const mid = (w.top + w.bottom) / 2;
+              const fit = rows.filter((r) => r.bottom - r.top >= w.height);
+              const near = (fit.length ? fit : rows).reduce((a, r) => (Math.abs((r.top + r.bottom) / 2 - mid) < Math.abs((a.top + a.bottom) / 2 - mid) ? r : a));
+              word.style.transform = `translateY(${Math.round((near.top + near.bottom) / 2 - mid)}px)`;
+            };
+            // Point visé : le milieu du trait gauche du O. Il gagne le centre de l'écran pendant que le mot grandit.
+            const measure = () => {
+              dive.style.transform = "none";
+              place(dive.getBoundingClientRect());
+              const box = dive.getBoundingClientRect();
+              const fs = parseFloat(getComputedStyle(o).fontSize);
+              const px = o.getBoundingClientRect().left - box.left + O_STROKE.x * fs;
+              const py = base.getBoundingClientRect().top - box.top - O_STROKE.y * fs;
+              geo = { px, py, cx: box.width / 2, cy: box.height / 2, s: (Math.max(box.width, box.height) / (O_STROKE.w * fs)) * 1.6 };
+            };
+            // Zoom exponentiel : une vitesse de plongée constante à l'œil
+            const st = { t: 0 };
+            const paint = () => {
+              const s = Math.pow(geo.s, st.t);
+              const m = st.t * st.t * (3 - 2 * st.t); // le point gagne le centre au rythme du zoom, sans glisser d'abord
+              const qx = geo.px + (geo.cx - geo.px) * m;
+              const qy = geo.py + (geo.cy - geo.py) * m;
+              dive.style.transform = `translate3d(${(qx - s * geo.px).toFixed(2)}px, ${(qy - s * geo.py).toFixed(2)}px, 0) scale(${s.toFixed(4)})`;
+              dive.style.opacity = st.t > 0.9 ? ((1 - st.t) / 0.1).toFixed(3) : "";
+              dive.style.visibility = st.t > 0.995 ? "hidden" : "";
+            };
+            measure();
+            paint();
+            gsap.set(grid, { transformOrigin: "50% 0%" });
+            if (wide) {
+              // Grand écran : les photos glissent dans les lettres à l'arrivée, puis la scène est tenue le temps de la plongée
+              gsap.fromTo(grid, { y: () => window.innerHeight * 0.16 }, {
+                y: 0, ease: "none",
+                scrollTrigger: { trigger: fg, start: "top bottom", end: "top top", scrub: true, invalidateOnRefresh: true },
+              });
+              gsap.timeline({
+                scrollTrigger: {
+                  trigger: fg, start: "top top", end: () => `+=${Math.round(window.innerHeight * 1.3)}`,
+                  pin: true, scrub: true, invalidateOnRefresh: true,
+                  onRefresh: () => { measure(); paint(); },
+                },
+              })
+                .to(st, { t: 1, duration: 1, ease: "none", onUpdate: paint }, 0)
+                .fromTo(grid, { scale: 1.08 }, { scale: 1, duration: 1, ease: "none" }, 0);
+            } else {
+              // Au doigt : la plongée se joue d'elle-même quand le mot occupe l'écran, et revient si l'on remonte
+              const tl = gsap.timeline({ paused: true })
+                .to(st, { t: 1, duration: 1.4, ease: "power1.in", onUpdate: paint }, 0)
+                .fromTo(grid, { scale: 1.08 }, { scale: 1, duration: 1.4, ease: "power2.out" }, 0);
+              ScrollTrigger.create({
+                trigger: fg, start: "top 12%",
+                onEnter: () => tl.play(), onLeaveBack: () => tl.reverse(),
+                onRefresh: () => { measure(); paint(); },
+              });
+            }
+          }
         }
 
         // Handball : la verticale devient horizontale, la galerie défile plus vite que la page pour rester courte
