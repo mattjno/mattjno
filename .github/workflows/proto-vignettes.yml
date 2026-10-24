@@ -3,7 +3,7 @@ name: Prototype (vignettes de contrôle)
 on:
   workflow_dispatch:
   push:
-    branches: [design/motion-proto]
+    branches: [design/motion-proto, design/version-a]
     paths: ["tools/vignettes.json", "tools/vignettes.py", ".github/workflows/proto-vignettes.yml"]
 
 permissions:

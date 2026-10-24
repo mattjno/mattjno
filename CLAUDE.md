@@ -30,3 +30,13 @@ Site portfolio de photographie sportive de Matthieu Jauneau (marque MATTJNO, mat
 - Section "PORTFOLIO" : grille de portraits verticaux 4:5, cadre blanc au survol, alimentée par un dossier R2.
 - Fin de page : contact.
 - Motion design à développer dans un second temps.
+
+## Version A (prototype `/proto/portfolio`, branche `design/version-a`, retenue par Matthieu le 24/10/2026)
+- Le site est une vitrine : ni adresse e-mail ni liste de clubs. Matthieu démarche les clubs lui-même par e-mail ou Instagram.
+- Pas d'intro : la photo est là au premier instant, le nom se lève dessus en moins de 1,2 s.
+- Un chapitre par sport. La fenêtre d'ouverture part du point d'action de la photo (`fx`, `fy` dans `photos.js`) et s'ouvre jusqu'au plein écran. Le même point centre le recadrage sur écran étroit.
+- La découpe de la fenêtre est calculée à chaque image (`insetAt`) : l'interpolation de chaînes `inset()` par GSAP perd un côté ou se déforme selon l'arrondi.
+- Les déclencheurs ScrollTrigger sont créés dans l'ordre de la page, puis `ScrollTrigger.refresh()`. Sinon les ouvertures sous la galerie handball se calculent avant sa hauteur.
+- Grilles par sport : football en grille décalée, handball en galerie latérale (3 de front sur grand écran), basket en rangées qui glissent, football américain en mosaïque. Nombre de photos choisi pour ne laisser aucune case vide.
+- Aucune photo rognée au repos. Visionneuse plein écran au clic : la photo grandit depuis sa vignette, entière.
+- Scènes tenues seulement sur grand écran (`min-width: 1024px` et `min-height: 560px`). La tablette en portrait suit le téléphone.
