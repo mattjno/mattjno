@@ -18,12 +18,20 @@ const LOCAL = process.env.NEXT_PUBLIC_LOCAL_IMG === "1";
 // Grands écrans où les scènes tenues ont la place de jouer (la tablette en portrait suit le téléphone)
 const WIDE = "(min-width: 1024px) and (min-height: 560px)";
 
+// Grand écran : 5 photos de front au lieu de 4
+const XL = "(min-width: 1700px)";
+
 const SIZES = {
-  grid: "(min-width: 760px) 24vw, 48vw",
+  grid: "(min-width: 1700px) 19vw, (min-width: 760px) 24vw, 48vw",
   side: "(min-width: 1024px) 31vw, (min-width: 760px) 46vw, 74vw",
-  rows: "(min-width: 760px) 24vw, 48vw",
-  feature: "(min-width: 760px) 50vw, 100vw",
+  rows: "(min-width: 1700px) 19vw, (min-width: 760px) 24vw, 48vw",
+  feature: "(min-width: 1700px) 40vw, (min-width: 760px) 50vw, 100vw",
 };
+
+// Photos masquées en 5 colonnes pour ne laisser aucune case vide (la grille garde 4 colonnes sous 5 photos)
+const cut5 = (n) => (n >= 5 ? Math.floor(n / 5) * 5 : n);
+const cut5Mosaic = (n) => { let s = n - 1; while (s > 0 && (4 + s) % 5 !== 0) s--; return s > 0 ? 1 + s : n; };
+const x5 = (k, limit) => (k >= limit ? " pf-x5" : "");
 
 function Pic({ p, sizes, priority = false, quality = 80, alt = "", focal = false }) {
   const src = LOCAL && p.i != null ? `/_local/v/${p.i}.jpg` : p.src;
@@ -91,9 +99,9 @@ function Frame({ ch, k, p, sizes, className, onOpen, register, quality = 80 }) {
 function Grid({ ch, ...f }) {
   return (
     <div className="fg">
-      <div className="fg-grid">
+      <div className={`fg-grid${ch.series.length < 5 ? " pf-keep4" : ""}`}>
         {ch.series.map((p, k) => (
-          <figure className="fg-item" key={p.src}>
+          <figure className={`fg-item${x5(k, cut5(ch.series.length))}`} key={p.src}>
             <Frame ch={ch} k={k} p={p} sizes={SIZES.grid} className="fg-frame" {...f} />
           </figure>
         ))}
@@ -123,19 +131,16 @@ function Side({ ch, ...f }) {
 }
 
 function Rows({ ch, ...f }) {
-  const rows = [];
-  for (let k = 0; k < ch.series.length; k += 4) rows.push(ch.series.slice(k, k + 4).map((p, j) => ({ p, k: k + j })));
+  const limit = cut5(ch.series.length);
   return (
     <div className="ro">
-      {rows.map((row, r) => (
-        <div className="ro-row" key={r} data-dir={r % 2 === 0 ? -1 : 1}>
-          {row.map(({ p, k }) => (
-            <figure className="ro-item" key={p.src}>
-              <Frame ch={ch} k={k} p={p} sizes={SIZES.rows} className="ro-frame" {...f} />
-            </figure>
-          ))}
-        </div>
-      ))}
+      <div className={`ro-grid${ch.series.length < 5 ? " pf-keep4" : ""}`}>
+        {ch.series.map((p, k) => (
+          <figure className={`ro-item${x5(k, limit)}`} key={p.src}>
+            <Frame ch={ch} k={k} p={p} sizes={SIZES.rows} className="ro-frame" {...f} />
+          </figure>
+        ))}
+      </div>
     </div>
   );
 }
@@ -143,9 +148,9 @@ function Rows({ ch, ...f }) {
 function Mosaic({ ch, ...f }) {
   return (
     <div className="mo">
-      <div className="mo-grid">
+      <div className={`mo-grid${ch.series.length < 7 ? " pf-keep4" : ""}`}>
         {ch.series.map((p, k) => (
-          <figure className={`mo-item${k === 0 ? " mo-feature" : ""}`} key={p.src}>
+          <figure className={`mo-item${k === 0 ? " mo-feature" : ""}${x5(k, ch.series.length < 7 ? ch.series.length : cut5Mosaic(ch.series.length))}`} key={p.src}>
             <Frame ch={ch} k={k} p={p} sizes={k === 0 ? SIZES.feature : SIZES.grid} quality={k === 0 ? 85 : 80} className="mo-frame" {...f} />
           </figure>
         ))}
@@ -168,6 +173,15 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
   const [active, setActive] = useState(null);
   const [menu, setMenu] = useState(false);
   const [viewer, setViewer] = useState(null);
+  const [cols, setCols] = useState(4);
+
+  useEffect(() => {
+    const mq = window.matchMedia(XL);
+    const set = () => setCols(mq.matches ? 5 : 4);
+    set();
+    mq.addEventListener("change", set);
+    return () => mq.removeEventListener("change", set);
+  }, []);
 
   const register = useCallback((id, k) => (el) => {
     if (el) frames.current.set(`${id}:${k}`, el);
@@ -221,7 +235,14 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
       });
       ScrollTrigger.create({ trigger: q(".p-hero")[0], start: "top top", end: "bottom 55%", onToggle: (self) => self.isActive && setActive(null) });
 
-      if (reduce) return;
+      // Mouvement réduit : pas de déplacement, seulement des apparitions en fondu
+      if (reduce) {
+        ScrollTrigger.batch(q(".fg-item, .ro-item, .mo-item, .sg-item, .ch-text"), {
+          start: "top 92%", once: true,
+          onEnter: (batch) => gsap.fromTo(batch, { opacity: 0 }, { opacity: 1, duration: 0.6, stagger: 0.05, ease: "power1.out" }),
+        });
+        return;
+      }
 
       // ---------- Hero qui recule ----------
       const hero = q(".p-hero")[0];
@@ -244,17 +265,33 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
         const state = { p: 0 };
         const paint = () => { win.style.clipPath = insetAt(start, state.p); };
         paint();
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: open, start: "top top", end: "bottom bottom", scrub: true,
+        if (wide) {
+          // Grand écran : la fenêtre suit le défilement
+          const tl = gsap.timeline({
+            scrollTrigger: {
+              trigger: open, start: "top top", end: "bottom bottom", scrub: true,
+              onRefresh: () => { start = startWindow(fx, fy); paint(); },
+            },
+            defaults: { ease: "none" },
+          });
+          tl.to(state, { p: 1, duration: 1, onUpdate: paint }, 0)
+            .fromTo(fill, { scale: 1.25 }, { scale: 1, duration: 1, immediateRender: true }, 0)
+            .to(open.querySelector(".ch-scrim"), { opacity: 1, duration: 0.4 }, 0.6)
+            .to({}, { duration: 0.2 });
+        } else {
+          // Téléphone et tablette : au doigt, l'élan ferait passer l'ouverture en un éclair. Elle se joue donc
+          // d'elle-même, en un temps fixe, dès que la fenêtre est à l'écran, et se referme si l'on remonte.
+          gsap.set(fill, { scale: 1.25 });
+          const tl = gsap.timeline({ paused: true });
+          tl.to(state, { p: 1, duration: 1.3, ease: "power3.inOut", onUpdate: paint }, 0)
+            .to(fill, { scale: 1, duration: 1.6, ease: "expo.out" }, 0)
+            .to(open.querySelector(".ch-scrim"), { opacity: 1, duration: 0.6, ease: "power1.out" }, 0.7);
+          ScrollTrigger.create({
+            trigger: open, start: "top 40%",
+            onEnter: () => tl.play(), onLeaveBack: () => tl.reverse(),
             onRefresh: () => { start = startWindow(fx, fy); paint(); },
-          },
-          defaults: { ease: "none" },
-        });
-        tl.to(state, { p: 1, duration: 1, onUpdate: paint }, 0)
-          .fromTo(fill, { scale: 1.25 }, { scale: 1, duration: 1, immediateRender: true }, 0)
-          .to(open.querySelector(".ch-scrim"), { opacity: 1, duration: 0.4 }, 0.6)
-          .to({}, { duration: 0.2 });
+          });
+        }
         gsap.from(open.querySelectorAll(".ch-title, .ch-meta"), {
           yPercent: 30, opacity: 0, duration: 1, stagger: 0.08, ease: "expo.out",
           scrollTrigger: { trigger: open, start: "top 70%" },
@@ -268,12 +305,11 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
             onEnter: (batch) => {
               gsap.fromTo(batch.map((b) => b.querySelector(".fg-frame")), { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.2, stagger: 0.08, ease: "expo.out" });
               gsap.fromTo(batch.map((b) => b.querySelector(".pf-fill")), { scale: 1.2 }, { scale: 1, duration: 1.5, stagger: 0.08, ease: "expo.out" });
-              gsap.fromTo(batch.map((b) => b.querySelector(".cap")), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.8, delay: 0.3, stagger: 0.08, ease: "expo.out" });
-            },
+                          },
           });
           if (wide) {
             fg.querySelectorAll(".fg-item").forEach((item, k) => {
-              if (k % 2 === 0) return;
+              if (k % cols !== 1 && k % cols !== 3) return;
               gsap.fromTo(item, { y: 0 }, { y: -60, ease: "none", scrollTrigger: { trigger: fg, start: "top bottom", end: "bottom top", scrub: true } });
             });
           }
@@ -293,14 +329,38 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
           });
         }
 
-        // Basket : les rangées glissent depuis les côtés, en alternance
+        // Handball au doigt : les photos entrent en cascade depuis la droite
+        if (ch.kind === "side" && !wide) {
+          const items = section.querySelectorAll(".sg-item");
+          ScrollTrigger.create({
+            trigger: section.querySelector(".sg"), start: "top 80%", once: true,
+            onEnter: () => gsap.fromTo(items, { x: 80, opacity: 0 }, { x: 0, opacity: 1, duration: 1, stagger: 0.08, ease: "expo.out" }),
+          });
+        }
+
+        // Basket : les rangées glissent depuis les côtés, en alternance. Les rangées sont reconstituées d'après
+        // la position des photos, pour suivre le nombre de colonnes de l'écran.
         if (ch.kind === "rows") {
-          section.querySelectorAll(".ro-row").forEach((row) => {
-            const d = Number(row.dataset.dir);
-            gsap.fromTo(row, { xPercent: d * (wide ? 38 : 20) }, {
-              xPercent: 0, ease: "none",
-              scrollTrigger: { trigger: row, start: "top bottom", end: "top 40%", scrub: true },
-            });
+          const grid = section.querySelector(".ro-grid");
+          const rows = [];
+          [...grid.querySelectorAll(".ro-item")].filter((el) => el.offsetParent !== null).forEach((el) => {
+            const last = rows[rows.length - 1];
+            if (last && Math.abs(last.top - el.offsetTop) < 4) last.items.push(el);
+            else rows.push({ top: el.offsetTop, items: [el] });
+          });
+          rows.forEach(({ items }, r) => {
+            const d = r % 2 === 0 ? -1 : 1;
+            if (wide) {
+              gsap.fromTo(items, { x: () => d * 0.38 * grid.clientWidth }, {
+                x: 0, ease: "none",
+                scrollTrigger: { trigger: items[0], start: "top bottom", end: "top 40%", scrub: true, invalidateOnRefresh: true },
+              });
+            } else {
+              ScrollTrigger.create({
+                trigger: items[0], start: "top 88%", once: true,
+                onEnter: () => gsap.fromTo(items, { x: () => d * 0.3 * grid.clientWidth, opacity: 0 }, { x: 0, opacity: 1, duration: 1, ease: "expo.out" }),
+              });
+            }
           });
         }
 
@@ -311,7 +371,6 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
             onEnter: (batch) => {
               gsap.fromTo(batch.map((b) => b.querySelector(".mo-frame")), { clipPath: "inset(50% 50% 50% 50%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.2, stagger: 0.09, ease: "expo.out" });
               gsap.fromTo(batch.map((b) => b.querySelector(".pf-fill")), { scale: 1.3 }, { scale: 1, duration: 1.6, stagger: 0.09, ease: "expo.out" });
-              gsap.fromTo(batch.map((b) => b.querySelector(".cap")), { opacity: 0 }, { opacity: 1, duration: 0.8, delay: 0.4, stagger: 0.09 });
             },
           });
         }
@@ -333,7 +392,7 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
       if (lenis) { gsap.ticker.remove(tick); lenis.destroy(); }
       lenisRef.current = null;
     };
-  }, []);
+  }, [cols]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lock = (on) => {
     const l = lenisRef.current;
