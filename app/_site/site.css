@@ -75,24 +75,31 @@ html.lenis, html.lenis body { height: auto; }
 .pf-hero__top { position: absolute; inset: 0 0 auto 0; height: 140px; background: rgba(8, 8, 8, 0.38); pointer-events: none; mask-image: linear-gradient(to bottom, #000 25%, transparent); -webkit-mask-image: linear-gradient(to bottom, #000 25%, transparent); } /* taste-skill-ignore: scrim neutre sous le bandeau */
 @media (prefers-reduced-motion: no-preference) {
   .js .pf-hero .p-hero__title .p-mask > span { transform: translateY(110%); animation: pf-line 900ms var(--ease-expo) 6s forwards; }
-  .js .pf-hero :is(.p-hero__sub, .hx-kicker, .hx-side, .hx-spec, .hx-scroll) { opacity: 0; transform: translateY(12px); animation: pf-rise 600ms var(--ease-out) 6s forwards; }
+  .js .pf-hero :is(.p-hero__sub, .hx-side, .hx-spec, .hx-scroll) { opacity: 0; transform: translateY(12px); animation: pf-rise 600ms var(--ease-out) 6s forwards; }
   .js .pf-hero .hx-gear__in { opacity: 0; transform: translateY(5%) scale(0.97); animation: pf-rise 1400ms var(--ease-expo) 6s forwards; }
-  .js.is-ready .pf-hero .p-hero__title .p-mask > span { animation-delay: calc(120ms + var(--i, 0) * 90ms); }
-  .js.is-ready .pf-hero .hx-gear__in { animation-delay: 0ms; }
-  .js.is-ready .pf-hero :is(.p-hero__sub, .hx-kicker) { animation-delay: 480ms; }
-  .js.is-ready .pf-hero :is(.hx-side, .hx-spec, .hx-scroll) { animation-delay: 700ms; }
+  /* is-ready change le nom de l'animation : elle repart de zéro à cet instant. Changer seulement son délai la ferait
+     sauter à la fin, le chargement ayant duré plus longtemps que ce délai. */
+  .js.is-ready .pf-hero .p-hero__title .p-mask > span { animation-name: pf-line-go; animation-delay: calc(var(--dive, 0ms) + 120ms + var(--i, 0) * 90ms); }
+  .js.is-ready .pf-hero .hx-gear__in { animation-name: pf-rise-go; animation-delay: 0ms; }
+  .js.is-ready .pf-hero .p-hero__sub { animation-name: pf-rise-go; animation-delay: calc(var(--dive, 0ms) + 480ms); }
+  .js.is-ready .pf-hero :is(.hx-side, .hx-spec, .hx-scroll) { animation-name: pf-rise-go; animation-delay: calc(var(--dive, 0ms) + 700ms); }
 }
+/* Au sortir du chargement, le texte de l'accueil attend que la hampe du T ait couvert l'écran (Camera.jsx) : on ne
+   voit pas un second MATTJNO à travers les lettres, seulement la photo */
+.is-dive { --dive: 750ms; }
 @keyframes pf-line { to { transform: none; } }
+@keyframes pf-line-go { to { transform: none; } }
 @keyframes pf-rise { to { opacity: 1; transform: none; } }
+@keyframes pf-rise-go { to { opacity: 1; transform: none; } }
 
 /* ---------- Accueil avec la photo du matériel (public/materiel/, ou le dossier R2 materiel/) ----------
    Fond noir, le nom sur une ligne au centre, au premier plan ; le matériel reste derrière, atténué. Détouré (PNG), il
    se dresse au centre ; photographié à plat sur un fond sombre (JPEG, tout le matériel étalé), il remplit le fond.
-   Les réglages au-dessus du nom, le métier à droite, le matériel en bas. */
+   Le métier à droite, le matériel en bas. */
 .pf-hero.is-gear { background: #000; }
-.is-gear .p-hero__text { left: 0; right: 0; bottom: auto; top: clamp(88px, 17svh, 200px); z-index: 1; display: grid; justify-content: center; } /* grille à la largeur du nom : les réglages s'alignent sur son début */
+.is-gear { --name-top: clamp(120px, 26svh, 300px); } /* haut du nom */
+.is-gear .p-hero__text { left: 0; right: 0; bottom: auto; top: var(--name-top); z-index: 1; display: flex; justify-content: center; }
 .is-gear .p-hero__title { display: flex; justify-content: center; font-size: min(19.5vw, 36svh); line-height: 0.8; letter-spacing: -0.06em; }
-.hx-kicker { justify-self: start; margin-bottom: clamp(14px, 2.4svh, 28px); font-size: var(--t-small); font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
 .hx-gear { --gh: min(86svh, 160vw); position: absolute; z-index: 0; bottom: 0; height: var(--gh); width: calc(var(--gh) * var(--r)); left: calc(50% - var(--gh) * var(--r) / 2); pointer-events: none; opacity: 0.5; }
 .hx-gear:not(.is-tall) { --gw: min(84vw, 150svh); width: var(--gw); height: calc(var(--gw) / var(--r)); left: calc(50% - var(--gw) / 2); bottom: 4svh; }
 .hx-gear__in { position: absolute; inset: 0; }
@@ -114,11 +121,11 @@ html.lenis, html.lenis body { height: auto; }
 .hx-scroll { position: absolute; left: var(--margin); bottom: 24px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: var(--ink); }
 .hx-af { position: relative; width: 18px; height: 14px; color: #ff3b30; }
 @media (max-width: 1023px) {
-  .hx-side { left: 0; right: 0; top: calc(clamp(88px, 17svh, 200px) + min(19.5vw, 36svh) * 0.8 + 64px); width: auto; text-align: center; }
+  .hx-side { left: 0; right: 0; top: calc(var(--name-top) + min(19.5vw, 36svh) * 0.8 + 40px); width: auto; text-align: center; }
   .hx-side p:not(.hx-side__head), .hx-link, .hx-spec, .hx-scroll { display: none; }
   .hx-gear { --gh: min(78svh, 160vw); }
   .hx-gear:not(.is-cut).is-tall img { object-position: 50% 100%; } /* entière, calée en bas, sous le métier */
-  .hx-gear:not(.is-cut):not(.is-tall) img { object-position: 70% 25%; } /* photo en largeur : les téléobjectifs blancs plutôt que le bord */
+  .hx-gear:not(.is-cut):not(.is-tall) img { object-position: 45% 35%; } /* photo en largeur : le 300 mm et les boîtiers, au centre */
 }
 
 /* ---------- Bandeau : discret en descendant, revient en remontant ---------- */
@@ -192,45 +199,26 @@ html.lenis, html.lenis body { height: auto; }
   .ch-pre, .ch-strip { display: none; }
 }
 
-/* ---------- Chargement : le viseur du boîtier (Camera.jsx) ----------
-   Les photos de la rafale, floues puis nettes (--focus, de 0 à 1), sous l'affichage du boîtier : vues restantes,
-   format, réglages, jauge du tampon et pourcentage en rouge ; le collimateur passe au vert, l'obturateur claque.
-   Sans script ou déjà chargé dans l'onglet (html.seen) : rien. Au pire, il s'efface de lui-même après 6 s. */
-.ld { --focus: 0; position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: #000; color: var(--ink); animation: ld-bail 0.4s 6s forwards; }
+/* ---------- Chargement : MATTJNO, à la manière de landonorris.com (Camera.jsx) ----------
+   Écran clair, le nom en noir. L'écran est en mode « screen » : son blanc reste blanc, son noir laisse voir la
+   page. Les lettres sont donc des fenêtres sur l'accueil ; agrandies, elles l'ouvrent en entier. Sans script ou
+   déjà chargé dans l'onglet (html.seen) : rien. Au pire, il s'efface de lui-même après 6 s. */
+.ld { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: #fff; color: #000; mix-blend-mode: screen; animation: ld-bail 0.4s 6s forwards; }
 html:not(.js) .ld, .seen .ld { display: none; }
 @keyframes ld-bail { to { opacity: 0; visibility: hidden; } }
-.ld.is-open { background: transparent; }
-.ld.is-open .ld-view { visibility: hidden; }
-.ld-view { position: relative; width: min(72vw, calc(66svh * 1.5)); aspect-ratio: 3 / 2; }
-.ld-frame { position: absolute; inset: 0; overflow: clip; background: #0b0b0b; }
-.ld-shot { position: absolute; inset: 0; opacity: 0; transition: opacity 120ms linear; filter: blur(calc((1 - var(--focus)) * 14px)) brightness(0.6); }
-.ld-shot.is-on { opacity: 1; }
-.ld-shot img { object-fit: cover; }
-.ld-ui { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 2.6% 3.2%; font-size: clamp(11px, 1vw, 14px); font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
-.ld-row { display: flex; align-items: center; gap: 1.6em; }
-.ld-grow { margin-right: auto; }
-.ld-af { position: absolute; left: 50%; top: 50%; width: 6%; aspect-ratio: 5 / 4; transform: translate(-50%, -50%); color: #ff3b30; transition: color 120ms ease, transform 200ms var(--ease-out); }
-.ld-af i, .fc i, .hx-af i { position: absolute; width: 30%; height: 30%; border: 0 solid currentColor; }
-.ld-af i:nth-child(1), .fc i:nth-child(1), .hx-af i:nth-child(1) { left: 0; top: 0; border-width: 2px 0 0 2px; }
-.ld-af i:nth-child(2), .fc i:nth-child(2), .hx-af i:nth-child(2) { right: 0; top: 0; border-width: 2px 2px 0 0; }
-.ld-af i:nth-child(3), .fc i:nth-child(3), .hx-af i:nth-child(3) { left: 0; bottom: 0; border-width: 0 0 2px 2px; }
-.ld-af i:nth-child(4), .fc i:nth-child(4), .hx-af i:nth-child(4) { right: 0; bottom: 0; border-width: 0 2px 2px 0; }
-.ld.is-lock .ld-af { color: #4cd964; transform: translate(-50%, -50%) scale(0.8); }
-.ld-gauge { display: flex; gap: 2px; }
-.ld-gauge i { width: 5px; height: 10px; background: rgba(241, 241, 239, 0.25); }
-.ld-gauge i.is-on { background: var(--ink); }
-.ld-pct { min-width: 3.2em; text-align: right; color: #ff3b30; }
-.ld.is-lock .ld-pct { color: #4cd964; }
-.ld-shutter span { position: absolute; left: 0; right: 0; height: 50.5%; background: #000; transform: scaleY(0); }
-.ld-shutter span:first-child { top: 0; transform-origin: top; }
-.ld-shutter span:last-child { bottom: 0; transform-origin: bottom; }
-@media (max-width: 759px) {
-  .ld-view { width: 92vw; }
-  .ld-row { gap: 1em; }
-  .ld-row span:nth-child(5) { display: none; }
-}
+.ld-word { display: flex; margin: 0; font-weight: 700; font-size: min(19.5vw, 36svh); line-height: 0.8; letter-spacing: -0.06em; text-transform: uppercase; will-change: transform; }
+.ld-l { display: block; overflow: clip; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+.ld-l > span { display: block; }
+.ld-pct { position: absolute; left: 0; right: 0; bottom: 28px; margin: 0; text-align: center; font-size: var(--t-small); font-weight: 600; font-variant-numeric: tabular-nums; }
+/* Mouvement réduit : l'accueil est déjà en place derrière, les lettres restent noires ; l'écran s'efface simplement */
+@media (prefers-reduced-motion: reduce) { .ld { mix-blend-mode: normal; } }
 
 /* ---------- Curseur : le collimateur d'autofocus, rouge ; vert et resserré sur ce qui se clique ---------- */
+.fc i, .hx-af i { position: absolute; width: 30%; height: 30%; border: 0 solid currentColor; }
+.fc i:nth-child(1), .hx-af i:nth-child(1) { left: 0; top: 0; border-width: 2px 0 0 2px; }
+.fc i:nth-child(2), .hx-af i:nth-child(2) { right: 0; top: 0; border-width: 2px 2px 0 0; }
+.fc i:nth-child(3), .hx-af i:nth-child(3) { left: 0; bottom: 0; border-width: 0 0 2px 2px; }
+.fc i:nth-child(4), .hx-af i:nth-child(4) { right: 0; bottom: 0; border-width: 0 2px 2px 0; }
 .has-cursor, .has-cursor * { cursor: none !important; }
 .has-cursor :is(input, textarea, select) { cursor: text !important; }
 .fc { position: fixed; left: 0; top: 0; z-index: 2147483000; pointer-events: none; opacity: 0; color: #ff3b30; transition: opacity 150ms ease, color 120ms ease; }
@@ -241,7 +229,7 @@ html:not(.js) .ld, .seen .ld { display: none; }
 .fc.is-lock .fc-box { transform: scale(0.78); }
 .fc.is-press .fc-box { transform: scale(0.62); }
 @media (prefers-reduced-motion: reduce) {
-  .fc, .fc-box, .ld-af { transition: none; }
+  .fc, .fc-box { transition: none; }
 }
 
 /* Barre de choix du passage : prévisualisation seulement (cachée sur mattjno.com) */
@@ -294,16 +282,6 @@ html:not(.js) .ld, .seen .ld { display: none; }
   .mo-feature { grid-row: auto; }
   .mo-feature .mo-frame { aspect-ratio: 3 / 4; flex: none; }
 }
-
-/* ---------- Football : le but ----------
-   Un ballon dessiné, invisible au repos, file vers la lucarne de la grille. Avant le tir, les photos du premier
-   écran sont voilées de noir (variable --veil, posée par le script : sans lui, rien n'est voilé). Le ballon est
-   dessiné à 400 px et toujours réduit, pour rester net. */
-.fg { position: relative; overflow: clip; }
-.fg-ball { position: absolute; left: 0; top: 0; z-index: 3; width: 400px; height: 400px; opacity: 0; pointer-events: none; transform-origin: 50% 50%; }
-.fg-ball svg { display: block; width: 100%; height: 100%; }
-.fg-frame::before { content: ""; position: absolute; inset: 0; z-index: 1; background: #000; opacity: var(--veil, 0); pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { .fg-ball { display: none; } }
 
 /* ---------- Handball : galerie latérale, à la taille des autres grilles ---------- */
 .sg { position: relative; }

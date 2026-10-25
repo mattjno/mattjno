@@ -1,62 +1,72 @@
 "use client";
 
-// Le boîtier de Matthieu, deux fois : le chargement vu dans le viseur, et le curseur, son collimateur d'autofocus.
+// Le chargement (MATTJNO, à la manière de landonorris.com) et le curseur, le collimateur d'autofocus du boîtier.
 
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
-import Pic from "./Pic";
 
 export const SEEN = "mj-seen"; // déjà chargé dans cet onglet : le chargement ne se rejoue pas (posé aussi par layout.js)
-const MIN = 1400; // le chargement dure au moins…
+const MIN = 1200; // le chargement dure au moins…
 const MAX = 4500; // …et jamais plus, même si une photo traîne
-const STEP = 340; // une photo de la rafale toutes les 340 ms : moins de trois changements par seconde, pas de clignotement
-const SHOTS = 208; // vues restantes au départ, comme sur l'écran du boîtier
-const RATE = 40; // le compteur descend d'une vue toutes les 40 ms : la rafale à 25 images par seconde
+const WORD = "MATTJNO";
+const DIVE = 3; // la lettre où l'on plonge : le second T, dont la hampe large remplit l'écran une fois agrandie
 
-// Chargement : le viseur, pendant que le site se charge. Les photos passent comme une rafale, floues puis nettes
-// à mesure que le tampon se remplit (pourcentage rouge, jauge) ; le compteur de vues descend. À 100 %, le collimateur
-// accroche (vert), l'obturateur claque et se rouvre sur l'accueil.
-export function Loader({ shots, onDone }) {
+// Chargement : un écran clair, MATTJNO en noir qui se lève lettre après lettre, l'avancement en bas. L'écran est en
+// mode « superposition » (screen) : son blanc reste blanc, son noir laisse voir la page. Les lettres sont donc déjà
+// des fenêtres sur l'accueil, encore noir derrière. Tout chargé, l'accueil se joue (onReveal) et l'on plonge dans la
+// hampe du second T jusqu'à ce qu'elle couvre l'écran ; le chargement a disparu (onDone).
+export function Loader({ onReveal, onDone }) {
   const root = useRef(null);
-  const pctRef = useRef(null);
-  const countRef = useRef(null);
+  const word = useRef(null);
+  const pct = useRef(null);
 
   useEffect(() => {
     const el = root.current;
     let seen = false;
     try { seen = sessionStorage.getItem(SEEN) === "1"; } catch {}
-    if (seen) { onDone(); return; }
+    if (seen) { onReveal(); onDone(); return; }
     // Le chargement s'ouvre sur l'accueil, pas là où le navigateur aurait rendu la page
     try { history.scrollRestoration = "manual"; } catch {}
     window.scrollTo(0, 0);
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const frames = [...el.querySelectorAll(".ld-shot")];
-    const blades = [...el.querySelectorAll(".ld-shutter span")];
-    const bars = [...el.querySelectorAll(".ld-gauge i")];
-    // Ce qu'il faut avoir avant d'ouvrir : l'image de l'accueil et les trois premières de la rafale (les autres
-    // arrivent pendant qu'elle tourne ; elle ne passe que par des photos chargées, jamais par un cadre noir)
-    const loaded = (img) => img && img.complete && img.naturalWidth > 0;
-    const imgs = [...document.querySelectorAll(".pf-hero [data-boot] img"), ...frames.slice(0, 3).map((f) => f.querySelector("img"))].filter(Boolean);
+    const letters = [...word.current.querySelectorAll(".ld-l > span")];
+    // Ce qu'il faut avoir avant d'ouvrir : l'image de l'accueil
+    const imgs = [...document.querySelectorAll(".pf-hero [data-boot] img")];
+    const loaded = (img) => img.complete && img.naturalWidth > 0;
     const t0 = performance.now();
     let shown = 0;
-    let cur = 0;
-    let last = t0;
     let prev = t0;
     let raf = 0;
     let tl = null;
+    const rise = reduce
+      ? gsap.fromTo(letters, { opacity: 0 }, { opacity: 1, duration: 0.4, stagger: 0.05 })
+      : gsap.fromTo(letters, { yPercent: 110 }, { yPercent: 0, duration: 0.9, stagger: 0.07, ease: "expo.out" });
 
-    gsap.set(blades, { scaleY: 0 });
     const finish = () => {
-      el.classList.add("is-lock");
-      tl = gsap.timeline({ onComplete: () => { try { sessionStorage.setItem(SEEN, "1"); } catch {} onDone(); } });
+      const done = () => { try { sessionStorage.setItem(SEEN, "1"); } catch {} onDone(); };
       if (reduce) {
-        tl.to(el, { opacity: 0, duration: 0.4, delay: 0.2 });
+        onReveal();
+        tl = gsap.timeline({ onComplete: done }).to(el, { opacity: 0, duration: 0.5 });
         return;
       }
-      // Le temps de voir l'accroche verte, puis le déclic : rideaux fermés, le viseur disparaît, ils s'ouvrent sur l'accueil
-      tl.to(blades, { scaleY: 1, duration: 0.07, ease: "power2.in" }, 0.32)
-        .add(() => el.classList.add("is-open"))
-        .to(blades, { scaleY: 0, duration: 0.2, ease: "power2.out" }, "+=0.06");
+      // La photo de l'accueil paraît tout de suite dans les lettres ; le nom et le reste, une fois l'écran couvert
+      // (is-dive, site.css)
+      document.documentElement.classList.add("is-dive");
+      onReveal();
+      // Le centre de la hampe du T, mesuré sur le dessin réel de la lettre (police chargée)
+      const box = word.current.getBoundingClientRect();
+      const t = word.current.querySelectorAll(".ld-l")[DIVE].getBoundingClientRect();
+      const cs = getComputedStyle(word.current);
+      const ctx = document.createElement("canvas").getContext("2d");
+      ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const m = ctx.measureText("T");
+      const x = t.left + (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2 - box.left;
+      const y = t.top + t.height * 0.6 - box.top;
+      gsap.set(word.current, { transformOrigin: `${x.toFixed(1)}px ${y.toFixed(1)}px` });
+      tl = gsap.timeline({ onComplete: done })
+        .to(pct.current, { opacity: 0, duration: 0.2 }, 0)
+        .to(word.current, { scale: 90, duration: 0.95, ease: "power4.in" }, 0.15)
+        .set(el, { opacity: 0 });
     };
 
     const tick = (now) => {
@@ -67,56 +77,20 @@ export function Loader({ shots, onDone }) {
       shown += (target - shown) * (1 - Math.exp(-(now - prev) / 160));
       prev = now;
       if (target === 1 && shown > 0.995) shown = 1;
-      pctRef.current.textContent = `${Math.round(shown * 100)}%`;
-      countRef.current.textContent = String(Math.max(0, SHOTS - Math.floor(elapsed / RATE)));
-      bars.forEach((b, i) => b.classList.toggle("is-on", shown * bars.length > i + 0.5));
-      el.style.setProperty("--focus", shown.toFixed(3));
-      if (!reduce && frames.length > 1 && now - last > STEP) {
-        const next = (cur + 1) % frames.length;
-        if (loaded(frames[next].querySelector("img"))) {
-          frames[cur].classList.remove("is-on");
-          frames[next].classList.add("is-on");
-          cur = next;
-        }
-        last = now;
-      }
-      if (shown >= 1) finish();
+      pct.current.textContent = `Chargement ${Math.round(shown * 100)}\u202f%`;
+      if (shown >= 1 && !rise.isActive()) finish();
       else raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(raf); if (tl) tl.kill(); };
+    return () => { cancelAnimationFrame(raf); rise.kill(); if (tl) tl.kill(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="ld" ref={root} aria-hidden="true">
-      <div className="ld-view">
-        <div className="ld-frame">
-          {shots.map((p, i) => (
-            <div className={`ld-shot${i === 0 ? " is-on" : ""}`} key={p.src}>
-              <Pic p={p} sizes="(min-width: 760px) 64vw, 92vw" quality={70} loading="eager" focal />
-            </div>
-          ))}
-          <div className="ld-ui">
-            <div className="ld-row">
-              <span className="ld-count" ref={countRef}>{SHOTS}</span>
-              <span>3:2</span>
-              <span>RAW</span>
-              <span className="ld-grow">AF-C</span>
-              <span>MATT.JNO</span>
-            </div>
-            <span className="ld-af"><i /><i /><i /><i /></span>
-            <div className="ld-row">
-              <span>1/2000</span>
-              <span>F2.8</span>
-              <span>±0.0</span>
-              <span className="ld-grow">ISO 3200</span>
-              <span className="ld-gauge">{Array.from({ length: 10 }, (_, i) => <i key={i} />)}</span>
-              <span className="ld-pct" ref={pctRef}>0%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="ld-shutter"><span /><span /></div>
+      <p className="ld-word" ref={word}>
+        {WORD.split("").map((c, i) => <span className="ld-l" key={i}><span>{c}</span></span>)}
+      </p>
+      <p className="ld-pct" ref={pct}>{"Chargement 0\u202f%"}</p>
     </div>
   );
 }

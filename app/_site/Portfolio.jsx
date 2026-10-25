@@ -37,28 +37,8 @@ const SIZES = {
 
 const ratio = (p) => +(p.w / p.h).toFixed(4);
 
-// Accueil, avec la photo du matériel : les réglages de Matthieu au bord du terrain, et son matériel
-const SETTINGS = "300 mm · f/2.8 · 1/2000 s";
+// Accueil : le matériel de Matthieu, en bas à droite
 const GEAR = "Sony α1 II + 300 mm F2.8 GM · α7 V + 70-200 mm F2.8 GM II";
-
-// Ballon du football, dessiné : pentagone central, cinq pentagones vers le bord, coutures des hexagones.
-// Coordonnées de -50 à 50 ; calculé une fois.
-const BALL = (() => {
-  const pt = (r, a, cx = 0, cy = 0) => [cx + r * Math.cos((a * Math.PI) / 180), cy + r * Math.sin((a * Math.PI) / 180)];
-  const fix = ([x, y]) => [+x.toFixed(2), +y.toFixed(2)];
-  const pent = (cx, cy, r, rot) => Array.from({ length: 5 }, (_, j) => fix(pt(r, rot + j * 72, cx, cy)));
-  const angles = [0, 1, 2, 3, 4].map((k) => -90 + k * 72);
-  const center = pent(0, 0, 13, -90);
-  const outer = angles.map((a) => { const [cx, cy] = pt(41, a); return pent(cx, cy, 12.5, a + 180); });
-  const seams = angles.flatMap((a, k) => [
-    [...center[k], ...outer[k][0]], // du pentagone central au pentagone extérieur
-    [...outer[k][4], ...outer[(k + 1) % 5][1]], // entre deux pentagones extérieurs
-    [...outer[k][2], ...fix(pt(60, a - 30))], // vers le bord
-    [...outer[k][3], ...fix(pt(60, a + 30))],
-  ]);
-  const pts = (p) => p.map((v) => v.join(",")).join(" ");
-  return { patches: [center, ...outer].map(pts), seams };
-})();
 
 // Galerie d'un chapitre pour `cols` colonnes. Trop peu de photos pour une rangée complète : on essaie avec moins de colonnes.
 function galleryOf(ch, cols) {
@@ -207,23 +187,6 @@ function Tile({ g, k, x, pre, ...f }) {
   );
 }
 
-// Football : le ballon du but, invisible au repos
-function Ball() {
-  return (
-    <div className="fg-ball" aria-hidden="true">
-      <svg viewBox="-50 -50 100 100">
-        <defs><clipPath id="fg-ball-clip"><circle r="48" /></clipPath></defs>
-        <circle r="48" fill="#f1f1ef" />
-        <g clipPath="url(#fg-ball-clip)" fill="#0b0b0b" stroke="#0b0b0b" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round">
-          {BALL.patches.map((p, i) => <polygon key={i} points={p} />)}
-          {BALL.seams.map(([x1, y1, x2, y2], i) => <line key={`s${i}`} x1={x1} y1={y1} x2={x2} y2={y2} />)}
-        </g>
-        <circle r="48" fill="none" stroke="#f1f1ef" strokeWidth="2.6" /> {/* liseré clair : la silhouette reste ronde sur le fond noir */}
-      </svg>
-    </div>
-  );
-}
-
 // Football (grille), basket (rangées qui glissent), football américain (mosaïque)
 const PRE = { grid: "fg", rows: "ro", mosaic: "mo" };
 
@@ -231,7 +194,6 @@ function Cells({ g, kind, cols, ...f }) {
   const pre = PRE[kind];
   return (
     <div className={pre}>
-      {kind === "grid" && <Ball />}
       <div className={`${pre}-grid`} style={g.cols !== cols ? { "--cols": g.cols } : undefined}>
         {g.items.map((x, k) => <Tile key={x.p.src} g={g} k={k} x={x} pre={pre} {...f} />)}
       </div>
@@ -271,11 +233,6 @@ export default function Portfolio({ hero: HERO, gear, chapters: CHAPTERS }) {
   // Chargement : tant qu'il joue, la page ne défile pas
   const bootRef = useRef(true);
   const [booting, setBooting] = useState(true);
-  // La rafale du chargement : les photos de l'accueil et la première de chaque sport
-  const bootShots = useMemo(() => {
-    const all = [...HERO, ...CHAPTERS.map((c) => c.slides[0])];
-    return all.filter((p, i) => all.findIndex((q) => q.src === p.src) === i).slice(0, 8);
-  }, [HERO, CHAPTERS]);
   const [cstatus, setCstatus] = useState("idle");
   const [active, setActive] = useState(null);
   const [menu, setMenu] = useState(false);
@@ -448,80 +405,15 @@ export default function Portfolio({ hero: HERO, gear, chapters: CHAPTERS }) {
           scrollTrigger: { trigger: open, start: "top 70%" },
         });
 
-        // Football : le but. Un ballon part du bas de l'écran, file en courbe et frappe la lucarne de la grille ;
-        // le filet tremble depuis l'impact et les photos s'allument dans l'onde. Un tir reste rapide : il se joue
-        // de lui-même (ordinateur comme téléphone), une fois, quand la première rangée est à l'écran.
+        // Football : les photos montent dans leur cadre en arrivant
         if (ch.kind === "grid") {
-          const fg = section.querySelector(".fg");
-          const grid = fg.querySelector(".fg-grid");
-          const ball = fg.querySelector(".fg-ball");
-          const gridTop = grid.getBoundingClientRect().top;
-          const items = [...grid.querySelectorAll(".fg-item")];
-          // Le premier écran de photos attend le tir ; les suivantes montent dans leur cadre en arrivant
-          const first = items.filter((el) => el.getBoundingClientRect().top - gridTop <= window.innerHeight * 0.55);
-          const later = items.filter((el) => !first.includes(el));
-          ScrollTrigger.batch(later, {
+          ScrollTrigger.batch(section.querySelectorAll(".fg-item"), {
             start: "top 92%", once: true,
             onEnter: (batch) => {
               gsap.fromTo(batch.map((b) => b.querySelector(".fg-frame")), { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.2, stagger: 0.08, ease: "expo.out" });
               gsap.fromTo(batch.map((b) => b.querySelector(".pf-fill")), { scale: 1.2 }, { scale: 1, duration: 1.5, stagger: 0.08, ease: "expo.out" });
             },
           });
-
-          // Arrivé plus bas (rechargement, lien direct) : pas de tir, la grille est déjà là
-          const pending = fg.getBoundingClientRect().top > window.innerHeight * 0.32;
-          if (ball && pending && first.length) {
-            const frames = first.map((el) => el.querySelector(".fg-frame"));
-            gsap.set(frames, { "--veil": 0.84 });
-            const shoot = () => {
-              const fr = fg.getBoundingClientRect();
-              const vw = window.innerWidth;
-              const vh = window.innerHeight;
-              const rects = first.map((el) => el.getBoundingClientRect());
-              // Lucarne : le coin haut de la photo la plus à droite de la première rangée
-              const top = Math.min(...rects.map((r) => r.top));
-              const goal = rects.filter((r) => r.top - top < 4).reduce((a, r) => (r.right > a.right ? r : a));
-              const P2 = [goal.right - goal.width * 0.22 - fr.left, goal.top + goal.height * 0.2 - fr.top];
-              // Départ au ras du bas de l'écran, ballon à moitié visible ; le point de contrôle à gauche donne l'effet enroulé
-              const P0 = [vw * 0.3 - fr.left, vh * 0.97 - fr.top];
-              const P1 = [vw * 0.04 - fr.left, P2[1] + (P0[1] - P2[1]) * 0.42];
-              const vmin = Math.min(vw, vh);
-              const D0 = vmin * 0.4;
-              const D1 = Math.max(22, vmin * 0.045);
-              const st = { t: 0, sink: 0 };
-              const paint = () => {
-                // Trajectoire qui ralentit au loin ; la taille suit le temps, pour que le ballon reste gros au départ
-                const t = Math.sin((st.t * Math.PI) / 2);
-                const u = 1 - t;
-                const x = u * u * P0[0] + 2 * u * t * P1[0] + t * t * P2[0];
-                const y = u * u * P0[1] + 2 * u * t * P1[1] + t * t * P2[1];
-                // Le ballon rapetisse en s'éloignant, s'écrase un instant dans le filet puis s'y perd
-                const d = (D0 * Math.pow(D1 / D0, st.t) * (1 - 0.5 * st.sink)) / 400;
-                const sq = Math.sin(Math.PI * Math.min(1, st.sink * 2));
-                ball.style.transform = `translate3d(${(x - 200).toFixed(1)}px, ${(y - 200).toFixed(1)}px, 0) scale(${(d * (1 + 0.22 * sq)).toFixed(4)}, ${(d * (1 - 0.18 * sq)).toFixed(4)}) rotate(${(st.t * 620).toFixed(1)}deg)`;
-                ball.style.opacity = (1 - st.sink).toFixed(3);
-              };
-              paint();
-              // Le filet : perspective centrée sur l'impact, les photos reculent puis reviennent en onde
-              const gr = grid.getBoundingClientRect();
-              grid.style.perspective = "1100px";
-              grid.style.perspectiveOrigin = `${(P2[0] + fr.left - gr.left).toFixed(0)}px ${(P2[1] + fr.top - gr.top).toFixed(0)}px`;
-              const FLIGHT = 1;
-              const tl = gsap.timeline();
-              tl.to(st, { t: 1, duration: FLIGHT, ease: "none", onUpdate: paint }, 0)
-                .to(st, { sink: 1, duration: 0.3, ease: "power2.out", onUpdate: paint }, FLIGHT);
-              first.forEach((el, i) => {
-                const r = rects[i];
-                const dist = Math.hypot(r.left + r.width / 2 - (P2[0] + fr.left), r.top + r.height / 2 - (P2[1] + fr.top));
-                const at = FLIGHT + dist / 2400;
-                const depth = 40 + 160 * Math.exp(-dist / 520);
-                tl.to(el, { z: -depth, duration: 0.14, ease: "power2.out" }, at)
-                  .to(el, { z: 0, duration: 1.2, ease: "elastic.out(1, 0.3)" }, at + 0.14)
-                  .to(frames[i], { "--veil": 0, duration: 0.55, ease: "power2.out" }, at);
-              });
-            };
-            ScrollTrigger.create({ trigger: fg, start: "top 32%", once: true, onEnter: shoot });
-          }
         }
 
         // Handball : la verticale devient horizontale, la galerie défile plus vite que la page pour rester courte
@@ -608,9 +500,11 @@ export default function Portfolio({ hero: HERO, gear, chapters: CHAPTERS }) {
   useEffect(() => {
     if (bootRef.current) document.documentElement.classList.add("pf-locked");
   }, []);
+  // Le chargement s'ouvre : l'accueil se joue derrière (le nom se lève, le matériel apparaît)
+  const revealed = useCallback(() => document.documentElement.classList.add("is-ready"), []);
+  // Il a disparu : la page défile
   const booted = useCallback(() => {
     bootRef.current = false;
-    document.documentElement.classList.add("is-ready");
     setBooting(false);
     lock(false);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -738,7 +632,6 @@ export default function Portfolio({ hero: HERO, gear, chapters: CHAPTERS }) {
           </div>}
           <div className="p-hero__dim" />
           <div className="p-hero__text">
-            {gear && <p className="hx-kicker">{SETTINGS}</p>}
             <h1 className="p-hero__title">
               <span className="p-mask"><span style={{ "--i": 0 }}>Matt</span></span>
               <span className="p-mask"><span style={{ "--i": 1 }}>Jno</span></span>
@@ -819,7 +712,7 @@ export default function Portfolio({ hero: HERO, gear, chapters: CHAPTERS }) {
       )}
 
       {viewer && <Viewer open={viewer} onClose={closeViewer} />}
-      {booting && <Loader shots={bootShots} onDone={booted} />}
+      {booting && <Loader onReveal={revealed} onDone={booted} />}
       <FocusCursor />
     </div>
   );

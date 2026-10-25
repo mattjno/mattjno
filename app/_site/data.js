@@ -42,10 +42,9 @@ function fallbackChapter({ fallback, min, folders, ...s }) {
 // Photo du matériel pour l'accueil : { src, w, h, cut } (cut : détourée, fond transparent)
 const gearOf = ({ src, w, h }) => ({ src, w, h, cut: /\.png$/i.test(src) });
 
-// Tout le matériel de Matthieu étalé, vu de dessus : sa photo sur le parquet, posée sur fond noir avec
-// tools/fond-noir.swift. Le fond entier de l'accueil. Sa photo précédente, détourée (alpha1-ii-300mm.png, 522 × 1290),
-// reste dans public/materiel/ pour revenir en arrière. Dimensions écrites ici : le serveur ne relit pas public/ en ligne.
-const GEAR_PHOTO = gearOf({ src: "/materiel/kit-noir.jpg", w: 1229, h: 1496 });
+// Tout le matériel de Matthieu étalé sur du cuir noir, vu de dessus : sa photo, telle qu'il l'a envoyée. Le fond entier
+// de l'accueil. Dimensions écrites ici : le serveur ne relit pas public/ en ligne.
+const GEAR_PHOTO = gearOf({ src: "/materiel/kit.jpg", w: 2000, h: 1500 });
 
 function fallbackSite() {
   return { hero: HERO.map(strip), gear: GEAR_PHOTO, chapters: SPORTS.map(fallbackChapter), source: "selection" };
