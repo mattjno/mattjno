@@ -4,9 +4,9 @@
 // fondu ; tout le reste (portraits, autres paysages, panoramiques) forme la galerie, du plus récent au plus ancien.
 // Un dossier vide ou incomplet garde la sélection d'origine (photos.js).
 // Point d'action facultatif dans le nom du fichier : « ...@60-40.jpg » (60 % depuis la gauche, 40 % depuis le haut).
-// Accueil : la photo du matériel de Matthieu, détourée, rangée avec le site (GEAR_PHOTO). Une photo déposée dans
-// materiel/ la remplace (la plus récente) : un PNG est pris pour détouré (fond transparent) et passe devant le nom ;
-// un JPEG doit être pris sur fond noir.
+// Accueil : la photo du matériel de Matthieu, rangée avec le site (GEAR_PHOTO), derrière le nom, atténuée. Une photo
+// déposée dans materiel/ la remplace (la plus récente) : un PNG est pris pour détouré (fond transparent) et se dresse
+// au centre ; un JPEG, pour tout le matériel photographié à plat sur un fond sombre, et remplit le fond.
 
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
 import { imageSize } from "image-size";

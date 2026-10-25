@@ -85,20 +85,21 @@ html.lenis, html.lenis body { height: auto; }
 @keyframes pf-line { to { transform: none; } }
 @keyframes pf-rise { to { opacity: 1; transform: none; } }
 
-/* ---------- Accueil avec la photo du matériel (dossier R2 materiel/) ----------
-   Fond noir, le nom sur une ligne au centre ; le matériel détouré passe devant les lettres (pris sur fond noir, il
-   reste derrière et se fond dans la page). Les réglages au-dessus du nom, le métier à droite, le matériel en bas. */
+/* ---------- Accueil avec la photo du matériel (public/materiel/, ou le dossier R2 materiel/) ----------
+   Fond noir, le nom sur une ligne au centre, au premier plan ; le matériel reste derrière, atténué. Détouré (PNG), il
+   se dresse au centre ; photographié à plat sur un fond sombre (JPEG, tout le matériel étalé), il remplit le fond.
+   Les réglages au-dessus du nom, le métier à droite, le matériel en bas. */
 .pf-hero.is-gear { background: #000; }
 .is-gear .p-hero__text { left: 0; right: 0; bottom: auto; top: clamp(88px, 17svh, 200px); z-index: 1; display: grid; justify-content: center; } /* grille à la largeur du nom : les réglages s'alignent sur son début */
 .is-gear .p-hero__title { display: flex; justify-content: center; font-size: min(19.5vw, 36svh); line-height: 0.8; letter-spacing: -0.06em; }
 .hx-kicker { justify-self: start; margin-bottom: clamp(14px, 2.4svh, 28px); font-size: var(--t-small); font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
-.hx-gear { --gh: min(86svh, 160vw); position: absolute; z-index: 0; bottom: 0; height: var(--gh); width: calc(var(--gh) * var(--r)); left: calc(50% - var(--gh) * var(--r) / 2); pointer-events: none; }
+.hx-gear { --gh: min(86svh, 160vw); position: absolute; z-index: 0; bottom: 0; height: var(--gh); width: calc(var(--gh) * var(--r)); left: calc(50% - var(--gh) * var(--r) / 2); pointer-events: none; opacity: 0.5; }
 .hx-gear:not(.is-tall) { --gw: min(84vw, 150svh); width: var(--gw); height: calc(var(--gw) / var(--r)); left: calc(50% - var(--gw) / 2); bottom: 4svh; }
-.hx-gear.is-cut { z-index: 2; }
 .hx-gear__in { position: absolute; inset: 0; }
 .hx-gear img { object-fit: contain; }
-/* Pris sur fond noir : les bords se perdent dans la page */
-.hx-gear:not(.is-cut) .hx-gear__in { mask-image: radial-gradient(closest-side, #000 72%, transparent); -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent); } /* taste-skill-ignore: fondu du bord de la photo dans le noir */
+/* Tout le matériel étalé, photographié à plat : le fond entier de l'accueil, plus sombre encore */
+.hx-gear:not(.is-cut) { inset: 0; width: auto; height: auto; opacity: 0.3; }
+.hx-gear:not(.is-cut) img { object-fit: cover; }
 .hx-meta { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 .hx-side { position: absolute; right: var(--margin); top: 54%; width: min(300px, 24vw); pointer-events: auto; }
 .hx-side p { color: var(--muted); font-size: var(--t-small); }
@@ -113,7 +114,7 @@ html.lenis, html.lenis body { height: auto; }
 @media (max-width: 1023px) {
   .hx-side { left: 0; right: 0; top: calc(clamp(88px, 17svh, 200px) + min(19.5vw, 36svh) * 0.8 + 64px); width: auto; text-align: center; }
   .hx-side p:not(.hx-side__head), .hx-link, .hx-spec, .hx-scroll { display: none; }
-  .hx-gear { --gh: min(58svh, 150vw); } /* sous le métier, qui resterait illisible sur le pare-soleil blanc */
+  .hx-gear { --gh: min(78svh, 160vw); }
 }
 
 /* ---------- Bandeau : discret en descendant, revient en remontant ---------- */
@@ -279,7 +280,7 @@ html:not(.js) .ld, .seen .ld { display: none; }
 @media (max-width: 759px) { .fg-grid, .ro-grid, .mo-grid { --cols: 2; } }
 @media (min-width: 1700px) { .fg-grid, .ro-grid, .mo-grid { --cols: 5; } }
 .fg-item, .ro-item, .mo-item { margin: 0; grid-column: span var(--s, 1); }
-.fg-frame, .ro-frame, .mo-frame { height: calc((calc(var(--u) * 100) - (var(--cols) - 1) * var(--gap)) / var(--cols) * 4 / 3); }
+.fg-frame, .ro-frame, .mo-frame { height: calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols) * 4 / 3); }
 .is-full > .pf-btn { height: auto; aspect-ratio: var(--r); }
 .ro-item { will-change: transform; }
 .mo-item { display: flex; flex-direction: column; }

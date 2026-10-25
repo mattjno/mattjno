@@ -747,10 +747,10 @@ export default function Portfolio({ hero: HERO, gear, chapters: CHAPTERS }) {
           </div>
           {gear && (
             <>
-              {/* Le matériel devant le nom (photo détourée), ou derrière s'il est pris sur fond noir */}
+              {/* Le matériel derrière le nom, atténué : détouré au centre, ou photographié à plat en fond */}
               <div className={`hx-gear${gear.cut ? " is-cut" : ""}${gear.w < gear.h ? " is-tall" : ""}`} style={{ "--r": ratio(gear) }} data-boot="">
                 <div className="hx-gear__in">
-                  <Pic p={gear} sizes={gear.w < gear.h ? "(min-width: 760px) 40vw, 80vw" : "(min-width: 760px) 86vw, 100vw"} priority quality={90} alt={`Le matériel de MATT.JNO : ${GEAR}`} />
+                  <Pic p={gear} sizes={!gear.cut ? "100vw" : gear.w < gear.h ? "(min-width: 760px) 40vw, 80vw" : "(min-width: 760px) 86vw, 100vw"} priority quality={90} alt={`Le matériel de MATT.JNO : ${GEAR}`} />
                 </div>
               </div>
               {/* Le métier, le matériel, « Défiler » : s'effacent ensemble en descendant */}
