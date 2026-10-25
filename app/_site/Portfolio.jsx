@@ -10,7 +10,7 @@ import Lenis from "lenis";
 import "@fontsource-variable/instrument-sans";
 import Viewer from "./Viewer";
 import Pic from "./Pic";
-import { Loader, FocusCursor } from "./Camera";
+import { Loader, FocusCursor, NAME } from "./Camera";
 import { PASSAGES, BallArt, FieldArt, fits, passage as playPassage } from "./Passage";
 import { pack, span } from "./pack";
 import "./site.css";
@@ -36,9 +36,6 @@ const SIZES = {
 };
 
 const ratio = (p) => +(p.w / p.h).toFixed(4);
-
-// Accueil : le matériel de Matthieu, en bas à droite
-const GEAR = "Sony α1 II + 300 mm F2.8 GM · α7 V + 70-200 mm F2.8 GM II";
 
 // Galerie d'un chapitre pour `cols` colonnes. Trop peu de photos pour une rangée complète : on essaie avec moins de colonnes.
 function galleryOf(ch, cols) {
@@ -222,7 +219,7 @@ function Side({ g, ...f }) {
   );
 }
 
-export default function Portfolio({ hero: HERO, gear, chapters: CHAPTERS }) {
+export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
   const root = useRef(null);
   const navRef = useRef(null);
   const menuRef = useRef(null);
@@ -272,8 +269,10 @@ export default function Portfolio({ hero: HERO, gear, chapters: CHAPTERS }) {
     else frames.current.delete(`${id}:${k}`);
   }, []);
 
-  // Hero : fondu enchaîné, en pause quand l'onglet est caché
+  // Hero : fondu enchaîné une fois le chargement ouvert (la première photo a tout son temps), en pause quand l'onglet
+  // est caché
   useEffect(() => {
+    if (booting) return;
     let id = null;
     const start = () => { if (!id) id = setInterval(() => setSlide((s) => (s + 1) % HERO.length), HERO_INTERVAL); };
     const stop = () => { clearInterval(id); id = null; };
@@ -281,7 +280,7 @@ export default function Portfolio({ hero: HERO, gear, chapters: CHAPTERS }) {
     start();
     document.addEventListener("visibilitychange", vis);
     return () => { stop(); document.removeEventListener("visibilitychange", vis); };
-  }, []);
+  }, [booting]);
 
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
@@ -346,8 +345,6 @@ export default function Portfolio({ hero: HERO, gear, chapters: CHAPTERS }) {
       gsap.to(q(".p-hero__media"), { yPercent: 8, scale: 1.06, ease: "none", scrollTrigger: { trigger: hero, start: "top top", end: "bottom top", scrub: true } });
       gsap.to(q(".p-hero__dim"), { opacity: 0.45, ease: "none", scrollTrigger: { trigger: hero, start: "top top", end: "bottom top", scrub: true } });
       gsap.to(q(".p-hero__text"), { yPercent: -30, opacity: 0, ease: "none", scrollTrigger: { trigger: hero, start: "top top", end: "70% top", scrub: true } });
-      gsap.to(q(".hx-gear"), { yPercent: -8, scale: 0.92, ease: "none", scrollTrigger: { trigger: hero, start: "top top", end: "bottom top", scrub: true } });
-      gsap.to(q(".hx-meta"), { opacity: 0, ease: "none", scrollTrigger: { trigger: hero, start: "top top", end: "35% top", scrub: true } });
 
       // ---------- Chapitres, dans l'ordre de la page : chaque déclencheur est calculé après ceux du dessus ----------
       CHAPTERS.forEach((ch) => {
@@ -618,8 +615,8 @@ export default function Portfolio({ hero: HERO, gear, chapters: CHAPTERS }) {
       )}
 
       <main>
-        <header className={`p-hero pf-hero${gear ? " is-gear" : ""}`} id="top">
-          {!gear && <div className="p-hero__media">
+        <header className="p-hero pf-hero" id="top">
+          <div className="p-hero__media">
             {HERO.map((p, i) => (
               <div key={p.src} className={`p-hero__slide${i === slide ? " is-active" : ""}`} data-boot={i === 0 ? "" : undefined}>
                 <div className="p-hero__img p-fill" style={{ transformOrigin: `${p.fx ?? 50}% ${p.fy ?? 50}%` }}>
@@ -629,35 +626,14 @@ export default function Portfolio({ hero: HERO, gear, chapters: CHAPTERS }) {
             ))}
             <div className="p-hero__scrim" />
             <div className="pf-hero__top" />
-          </div>}
+          </div>
           <div className="p-hero__dim" />
           <div className="p-hero__text">
-            <h1 className="p-hero__title">
-              <span className="p-mask"><span style={{ "--i": 0 }}>Matt</span></span>
-              <span className="p-mask"><span style={{ "--i": 1 }}>Jno</span></span>
+            <p className="p-hero__sub">Sports Photographer</p>
+            <h1 className="p-hero__title" aria-label="Matt Jno">
+              {NAME.split("").map((c, i) => <span className="p-mask" key={i} aria-hidden="true"><span style={{ "--i": i }}>{c}</span></span>)}
             </h1>
-            {!gear && <p className="p-hero__sub">Sports Photographer</p>}
           </div>
-          {gear && (
-            <>
-              {/* Le matériel derrière le nom, atténué : détouré au centre, ou photographié à plat en fond */}
-              <div className={`hx-gear${gear.cut ? " is-cut" : ""}${gear.w < gear.h ? " is-tall" : ""}`} style={{ "--r": ratio(gear) }} data-boot="">
-                <div className="hx-gear__in">
-                  <Pic p={gear} sizes={!gear.cut ? "100vw" : gear.w < gear.h ? "(min-width: 760px) 40vw, 80vw" : "(min-width: 760px) 86vw, 100vw"} priority quality={90} alt={`Le matériel de MATT.JNO : ${GEAR}`} />
-                </div>
-              </div>
-              {/* Le métier, le matériel, « Défiler » : s'effacent ensemble en descendant */}
-              <div className="hx-meta">
-                <div className="hx-side">
-                  <p className="hx-side__head">Sports Photographer</p>
-                  <p>Football, basket, football américain, handball.</p>
-                  <button className="hx-link" onClick={() => go(CHAPTERS[0].id)}>Voir les photos</button>
-                </div>
-                <p className="hx-spec">{GEAR}</p>
-                <p className="hx-scroll" aria-hidden="true"><span className="hx-af"><i /><i /><i /><i /></span>Défiler</p>
-              </div>
-            </>
-          )}
         </header>
 
         {CHAPTERS.map((ch, i) => {

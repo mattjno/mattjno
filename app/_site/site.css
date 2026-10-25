@@ -62,9 +62,12 @@ html.lenis, html.lenis body { height: auto; }
 @keyframes p-kb { from { transform: scale(1.1); } to { transform: scale(1); } }
 .p-hero__scrim { position: absolute; inset: auto 0 0 0; height: 55%; background: rgba(8, 8, 8, 0.45); pointer-events: none; mask-image: linear-gradient(to top, #000 30%, transparent); -webkit-mask-image: linear-gradient(to top, #000 30%, transparent); } /* taste-skill-ignore: scrim neutre sous le titre */
 .p-hero__dim { position: absolute; inset: 0; background: var(--bg); opacity: 0; pointer-events: none; }
-.p-hero__text { position: absolute; left: var(--margin); right: var(--margin); bottom: clamp(24px, 6vh, 64px); }
-.p-hero__title { font-weight: 700; font-size: var(--t-display); line-height: 0.84; letter-spacing: -0.055em; text-transform: uppercase; }
-.p-hero__sub { margin-top: 18px; font-size: var(--t-lead); font-weight: 500; letter-spacing: -0.01em; }
+/* Le nom sur une ligne en bas à gauche, le métier en petit juste au-dessus, comme konradborzy.com. Une lettre par cache,
+   comme le nom du chargement qui vient s'y poser (Camera.jsx) : même dessin, sans crénage entre les lettres. */
+.p-hero__text { position: absolute; left: var(--margin); right: var(--margin); bottom: 10%; }
+.p-hero__sub { margin-bottom: 14px; font-size: 11px; font-weight: 400; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(241, 241, 239, 0.65); }
+.p-hero__title { display: flex; font-weight: 700; font-size: clamp(54px, 9vw, 152px); line-height: 0.9; letter-spacing: -0.02em; text-transform: uppercase; }
+@media (max-width: 759px) { .p-hero__text { bottom: 12%; } }
 @media (prefers-reduced-motion: reduce) { .p-hero__slide.is-active .p-hero__img { animation: none; } }
 
 .pf-fill { position: absolute; inset: 0; display: block; }
@@ -75,63 +78,23 @@ html.lenis, html.lenis body { height: auto; }
 .pf-hero__top { position: absolute; inset: 0 0 auto 0; height: 140px; background: rgba(8, 8, 8, 0.38); pointer-events: none; mask-image: linear-gradient(to bottom, #000 25%, transparent); -webkit-mask-image: linear-gradient(to bottom, #000 25%, transparent); } /* taste-skill-ignore: scrim neutre sous le bandeau */
 @media (prefers-reduced-motion: no-preference) {
   .js .pf-hero .p-hero__title .p-mask > span { transform: translateY(110%); animation: pf-line 900ms var(--ease-expo) 6s forwards; }
-  .js .pf-hero :is(.p-hero__sub, .hx-side, .hx-spec, .hx-scroll) { opacity: 0; transform: translateY(12px); animation: pf-rise 600ms var(--ease-out) 6s forwards; }
-  .js .pf-hero .hx-gear__in { opacity: 0; transform: translateY(5%) scale(0.97); animation: pf-rise 1400ms var(--ease-expo) 6s forwards; }
+  .js .pf-hero .p-hero__sub { opacity: 0; transform: translateY(12px); animation: pf-rise 600ms var(--ease-out) 6s forwards; }
   /* is-ready change le nom de l'animation : elle repart de zéro à cet instant. Changer seulement son délai la ferait
      sauter à la fin, le chargement ayant duré plus longtemps que ce délai. */
-  .js.is-ready .pf-hero .p-hero__title .p-mask > span { animation-name: pf-line-go; animation-delay: calc(var(--dive, 0ms) + 120ms + var(--i, 0) * 90ms); }
-  .js.is-ready .pf-hero .hx-gear__in { animation-name: pf-rise-go; animation-delay: 0ms; }
-  .js.is-ready .pf-hero .p-hero__sub { animation-name: pf-rise-go; animation-delay: calc(var(--dive, 0ms) + 480ms); }
-  .js.is-ready .pf-hero :is(.hx-side, .hx-spec, .hx-scroll) { animation-name: pf-rise-go; animation-delay: calc(var(--dive, 0ms) + 700ms); }
+  .js.is-ready .pf-hero .p-hero__title .p-mask > span { animation-name: pf-line-go; animation-delay: calc(120ms + var(--i, 0) * 50ms); }
+  .js.is-ready .pf-hero .p-hero__sub { animation-name: pf-rise-go; animation-delay: calc(var(--land, 0ms) + 480ms); }
+  /* Au sortir du chargement, son MATTJNO vole se poser sur celui de l'accueil (Camera.jsx) : celui-ci reste caché
+     pendant le vol (is-landing), paraît d'un coup à l'atterrissage (is-landed), et le métier vient ensuite */
+  .js.is-landing .pf-hero .p-hero__title .p-mask > span { animation: none; }
+  .js.is-landed .pf-hero .p-hero__title .p-mask > span { transform: none; }
+  /* La première photo attend l'ouverture pour commencer son léger recul */
+  .js:not(.is-ready) .pf-hero .p-hero__img { animation-play-state: paused; }
 }
-/* Au sortir du chargement, le texte de l'accueil attend que la hampe du T ait couvert l'écran (Camera.jsx) : on ne
-   voit pas un second MATTJNO à travers les lettres, seulement la photo */
-.is-dive { --dive: 750ms; }
+.is-landing { --land: 900ms; }
 @keyframes pf-line { to { transform: none; } }
 @keyframes pf-line-go { to { transform: none; } }
 @keyframes pf-rise { to { opacity: 1; transform: none; } }
 @keyframes pf-rise-go { to { opacity: 1; transform: none; } }
-
-/* ---------- Accueil avec la photo du matériel (public/materiel/, ou le dossier R2 materiel/) ----------
-   Fond noir, le nom sur une ligne au centre, au premier plan ; le matériel reste derrière, atténué. Détouré (PNG), il
-   se dresse au centre ; photographié à plat sur un fond sombre (JPEG, tout le matériel étalé), il remplit le fond.
-   Le métier à gauche sous le nom, la liste du matériel en bas à droite. */
-.pf-hero.is-gear { background: #000; }
-.is-gear { --name-top: clamp(120px, 26svh, 300px); } /* haut du nom */
-.is-gear .p-hero__text { left: 0; right: 0; bottom: auto; top: var(--name-top); z-index: 1; display: flex; justify-content: center; }
-.is-gear .p-hero__title { display: flex; justify-content: center; font-size: min(19.5vw, 36svh); line-height: 0.8; letter-spacing: -0.06em; }
-.hx-gear { --gh: min(86svh, 160vw); position: absolute; z-index: 0; bottom: 0; height: var(--gh); width: calc(var(--gh) * var(--r)); left: calc(50% - var(--gh) * var(--r) / 2); pointer-events: none; opacity: 0.5; }
-.hx-gear:not(.is-tall) { --gw: min(84vw, 150svh); width: var(--gw); height: calc(var(--gw) / var(--r)); left: calc(50% - var(--gw) / 2); bottom: 4svh; }
-.hx-gear__in { position: absolute; inset: 0; }
-.hx-gear img { object-fit: contain; }
-/* Tout le matériel étalé, photographié à plat : le fond entier de l'accueil, plus sombre encore */
-.hx-gear:not(.is-cut) { inset: 0; width: auto; height: auto; opacity: 0.3; }
-.hx-gear:not(.is-cut) img { object-fit: cover; }
-/* Photo en largeur : descendue (--gear-y) pour que le 300 mm se voie sous le nom, et non derrière ; son bord haut se
-   fond dans le noir */
-.hx-gear:not(.is-cut):not(.is-tall) { --gear-y: 18svh; }
-.hx-gear:not(.is-cut):not(.is-tall) img { object-position: 50% var(--gear-y); mask-image: linear-gradient(to bottom, transparent var(--gear-y), #000 calc(var(--gear-y) + 10svh)); -webkit-mask-image: linear-gradient(to bottom, transparent var(--gear-y), #000 calc(var(--gear-y) + 10svh)); }
-/* Photo en hauteur sur un écran large : entière, au centre ; son fond noir se confond avec la page */
-.hx-gear:not(.is-cut).is-tall img { object-fit: contain; }
-.hx-meta { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
-.hx-side { position: absolute; left: var(--margin); top: calc(var(--name-top) + min(19.5vw, 36svh) * 0.8 + 32px); width: min(300px, 24vw); pointer-events: auto; }
-.hx-side p { color: var(--muted); font-size: var(--t-small); }
-.hx-side .hx-side__head { color: var(--ink); font-size: var(--t-lead); font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 10px; }
-.proto .hx-link { margin-top: 18px; background: none; border: 0; padding: 4px 0; cursor: pointer; font-weight: 600; font-size: var(--t-small); position: relative; }
-.hx-link::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: currentColor; transform: scaleX(0.3); transform-origin: left; transition: transform 400ms var(--ease-out); }
-@media (hover: hover) { .hx-link:hover::after { transform: scaleX(1); } }
-.hx-spec { position: absolute; right: var(--margin); bottom: 24px; font-size: 13px; color: var(--muted); }
-/* « Défiler », en bas à gauche (le matériel occupe le centre), après un petit collimateur */
-.hx-scroll { position: absolute; left: var(--margin); bottom: 24px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: var(--ink); }
-.hx-af { position: relative; width: 18px; height: 14px; color: #ff3b30; }
-@media (max-width: 1023px) {
-  .hx-side { left: 0; right: 0; top: calc(var(--name-top) + min(19.5vw, 36svh) * 0.8 + 40px); width: auto; text-align: center; }
-  .hx-side p:not(.hx-side__head), .hx-link, .hx-spec, .hx-scroll { display: none; }
-  .hx-gear { --gh: min(78svh, 160vw); }
-  .hx-gear:not(.is-cut).is-tall img { object-position: 50% 100%; } /* entière, calée en bas, sous le métier */
-  .hx-gear:not(.is-cut):not(.is-tall) { --gear-y: 12svh; }
-  .hx-gear:not(.is-cut):not(.is-tall) img { object-position: 45% var(--gear-y); } /* le 300 mm et les boîtiers, au centre */
-}
 
 /* ---------- Bandeau : discret en descendant, revient en remontant ---------- */
 .pf-nav { transition: transform 450ms var(--ease-out), background-color 300ms ease; }
@@ -205,13 +168,14 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* ---------- Chargement : MATTJNO, à la manière de landonorris.com (Camera.jsx) ----------
-   Écran clair, le nom en noir. L'écran est en mode « screen » : son blanc reste blanc, son noir laisse voir la
-   page. Les lettres sont donc des fenêtres sur l'accueil ; agrandies, elles l'ouvrent en entier. Sans script ou
-   déjà chargé dans l'onglet (html.seen) : rien. Au pire, il s'efface de lui-même après 6 s. */
-.ld { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: #fff; color: #000; mix-blend-mode: screen; animation: ld-bail 0.4s 6s forwards; }
+   Un écran blanc (.ld-bg), le nom en noir, aux proportions de celui de l'accueil (graisse, interlignage, interlettrage :
+   seule la taille change). Il se relève comme un store pendant que le nom vole à sa place. Sans script ou déjà chargé
+   dans l'onglet (html.seen) : rien. Au pire, il s'efface de lui-même après 6 s. */
+.ld { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; color: #000; animation: ld-bail 0.4s 6s forwards; }
 html:not(.js) .ld, .seen .ld { display: none; }
 @keyframes ld-bail { to { opacity: 0; visibility: hidden; } }
-.ld-word { display: flex; margin: 0; font-weight: 700; font-size: min(19.5vw, 36svh); line-height: 0.8; letter-spacing: -0.06em; text-transform: uppercase; will-change: transform; }
+.ld-bg { position: absolute; inset: 0; background: #fff; transform-origin: 50% 0; }
+.ld-word { position: relative; display: flex; margin: 0; font-weight: 700; font-size: min(17.5vw, 34svh); line-height: 0.9; letter-spacing: -0.02em; text-transform: uppercase; transform-origin: 0 0; will-change: transform; }
 .ld-l { display: block; overflow: clip; padding-bottom: 0.08em; margin-bottom: -0.08em; }
 .ld-l > span { display: block; }
 /* Les lettres se lèvent dès le premier affichage, sans attendre le script (sinon le nom paraît, disparaît, puis se lève) */
@@ -222,15 +186,13 @@ html:not(.js) .ld, .seen .ld { display: none; }
   .ld-l > span { opacity: 0; animation: pf-rise 400ms ease calc(var(--i, 0) * 50ms) forwards; }
 }
 .ld-pct { position: absolute; left: 0; right: 0; bottom: 28px; margin: 0; text-align: center; font-size: var(--t-small); font-weight: 600; font-variant-numeric: tabular-nums; }
-/* Mouvement réduit : l'accueil est déjà en place derrière, les lettres restent noires ; l'écran s'efface simplement */
-@media (prefers-reduced-motion: reduce) { .ld { mix-blend-mode: normal; } }
 
 /* ---------- Curseur : le collimateur d'autofocus, rouge ; vert et resserré sur ce qui se clique ---------- */
-.fc i, .hx-af i { position: absolute; width: 30%; height: 30%; border: 0 solid currentColor; }
-.fc i:nth-child(1), .hx-af i:nth-child(1) { left: 0; top: 0; border-width: 2px 0 0 2px; }
-.fc i:nth-child(2), .hx-af i:nth-child(2) { right: 0; top: 0; border-width: 2px 2px 0 0; }
-.fc i:nth-child(3), .hx-af i:nth-child(3) { left: 0; bottom: 0; border-width: 0 0 2px 2px; }
-.fc i:nth-child(4), .hx-af i:nth-child(4) { right: 0; bottom: 0; border-width: 0 2px 2px 0; }
+.fc i { position: absolute; width: 30%; height: 30%; border: 0 solid currentColor; }
+.fc i:nth-child(1) { left: 0; top: 0; border-width: 2px 0 0 2px; }
+.fc i:nth-child(2) { right: 0; top: 0; border-width: 2px 2px 0 0; }
+.fc i:nth-child(3) { left: 0; bottom: 0; border-width: 0 0 2px 2px; }
+.fc i:nth-child(4) { right: 0; bottom: 0; border-width: 0 2px 2px 0; }
 .has-cursor, .has-cursor * { cursor: none !important; }
 .has-cursor :is(input, textarea, select) { cursor: text !important; }
 .fc { position: fixed; left: 0; top: 0; z-index: 2147483000; pointer-events: none; opacity: 0; color: #ff3b30; transition: opacity 150ms ease, color 120ms ease; }

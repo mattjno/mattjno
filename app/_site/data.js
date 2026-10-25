@@ -1,12 +1,9 @@
-// Côté serveur : lit les photos du site dans R2. Un dossier par rubrique : hero/, materiel/, football/, handball/,
+// Côté serveur : lit les photos du site dans R2. Un dossier par rubrique : hero/, football/, handball/,
 // basketball/, football-americain/. Matthieu dépose ses exports sans les renommer ; le site lit lui-même leurs
 // dimensions. Dans un dossier sport : les 4 paysages les plus récents (hors panoramiques) ouvrent le chapitre en
 // fondu ; tout le reste (portraits, autres paysages, panoramiques) forme la galerie, du plus récent au plus ancien.
 // Un dossier vide ou incomplet garde la sélection d'origine (photos.js).
 // Point d'action facultatif dans le nom du fichier : « ...@60-40.jpg » (60 % depuis la gauche, 40 % depuis le haut).
-// Accueil : la photo du matériel de Matthieu, rangée avec le site (GEAR_PHOTO), derrière le nom, atténuée. Une photo
-// déposée dans materiel/ la remplace (la plus récente) : un PNG est pris pour détouré (fond transparent) et se dresse
-// au centre ; un JPEG, pour tout le matériel photographié à plat sur un fond sombre, et remplit le fond.
 
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
 import { imageSize } from "image-size";
@@ -39,15 +36,8 @@ function fallbackChapter({ fallback, min, folders, ...s }) {
   return { ...s, slides: [fallback[0], ...(extra.slides || [])].map(strip), series: series.map(strip) };
 }
 
-// Photo du matériel pour l'accueil : { src, w, h, cut } (cut : détourée, fond transparent)
-const gearOf = ({ src, w, h }) => ({ src, w, h, cut: /\.png$/i.test(src) });
-
-// Tout le matériel de Matthieu étalé sur du cuir noir, vu de dessus : sa photo, telle qu'il l'a envoyée. Le fond entier
-// de l'accueil. Dimensions écrites ici : le serveur ne relit pas public/ en ligne.
-const GEAR_PHOTO = gearOf({ src: "/materiel/kit.jpg", w: 2000, h: 1500 });
-
 function fallbackSite() {
-  return { hero: HERO.map(strip), gear: GEAR_PHOTO, chapters: SPORTS.map(fallbackChapter), source: "selection" };
+  return { hero: HERO.map(strip), chapters: SPORTS.map(fallbackChapter), source: "selection" };
 }
 
 function client() {
@@ -125,11 +115,10 @@ export async function getSite() {
   try {
     // Dossier R2 de chaque sport : son id, sauf mention contraire (le basket est rangé dans basketball/)
     const read = async (names) => (await Promise.all(names.map((n) => folder(c, n)))).flat().sort((a, b) => b.t - a.t);
-    const [hero, gear, ...sports] = await Promise.all([["hero"], ["materiel"], ...SPORTS.map((s) => s.folders || [s.id])].map(read));
+    const [hero, ...sports] = await Promise.all([["hero"], ...SPORTS.map((s) => s.folders || [s.id])].map(read));
     const used = [];
     const heroL = hero.filter(landscape);
     if (heroL.length) { site.hero = heroL; used.push(`hero ${heroL.length}`); }
-    if (gear.length) { site.gear = gearOf(gear[0]); used.push("materiel 1"); }
     site.chapters = SPORTS.map(({ fallback, min, folders, ...s }, k) => {
       const photos = sports[k];
       const wide = photos.filter(landscape);

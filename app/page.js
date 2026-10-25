@@ -5,6 +5,6 @@ import { getSite } from "./_site/data";
 export const revalidate = 300;
 
 export default async function Home() {
-  const { hero, gear, chapters } = await getSite();
-  return <Portfolio hero={hero} gear={gear} chapters={chapters} />;
+  const { hero, chapters } = await getSite();
+  return <Portfolio hero={hero} chapters={chapters} />;
 }
