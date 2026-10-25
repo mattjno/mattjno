@@ -29,7 +29,9 @@ export function Loader({ onReveal, onDone }) {
     try { history.scrollRestoration = "manual"; } catch {}
     window.scrollTo(0, 0);
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // Les lettres se lèvent en CSS dès le premier affichage (site.css) : on attend seulement qu'elles soient en place
     const letters = [...word.current.querySelectorAll(".ld-l > span")];
+    const rising = () => letters.some((l) => l.getAnimations().some((a) => a.playState === "running"));
     // Ce qu'il faut avoir avant d'ouvrir : l'image de l'accueil
     const imgs = [...document.querySelectorAll(".pf-hero [data-boot] img")];
     const loaded = (img) => img.complete && img.naturalWidth > 0;
@@ -38,9 +40,6 @@ export function Loader({ onReveal, onDone }) {
     let prev = t0;
     let raf = 0;
     let tl = null;
-    const rise = reduce
-      ? gsap.fromTo(letters, { opacity: 0 }, { opacity: 1, duration: 0.4, stagger: 0.05 })
-      : gsap.fromTo(letters, { yPercent: 110 }, { yPercent: 0, duration: 0.9, stagger: 0.07, ease: "expo.out" });
 
     const finish = () => {
       const done = () => { try { sessionStorage.setItem(SEEN, "1"); } catch {} onDone(); };
@@ -78,17 +77,17 @@ export function Loader({ onReveal, onDone }) {
       prev = now;
       if (target === 1 && shown > 0.995) shown = 1;
       pct.current.textContent = `Chargement ${Math.round(shown * 100)}\u202f%`;
-      if (shown >= 1 && !rise.isActive()) finish();
+      if (shown >= 1 && !rising()) finish();
       else raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(raf); rise.kill(); if (tl) tl.kill(); };
+    return () => { cancelAnimationFrame(raf); if (tl) tl.kill(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="ld" ref={root} aria-hidden="true">
       <p className="ld-word" ref={word}>
-        {WORD.split("").map((c, i) => <span className="ld-l" key={i}><span>{c}</span></span>)}
+        {WORD.split("").map((c, i) => <span className="ld-l" key={i}><span style={{ "--i": i }}>{c}</span></span>)}
       </p>
       <p className="ld-pct" ref={pct}>{"Chargement 0\u202f%"}</p>
     </div>

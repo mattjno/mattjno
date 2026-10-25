@@ -209,6 +209,13 @@ html:not(.js) .ld, .seen .ld { display: none; }
 .ld-word { display: flex; margin: 0; font-weight: 700; font-size: min(19.5vw, 36svh); line-height: 0.8; letter-spacing: -0.06em; text-transform: uppercase; will-change: transform; }
 .ld-l { display: block; overflow: clip; padding-bottom: 0.08em; margin-bottom: -0.08em; }
 .ld-l > span { display: block; }
+/* Les lettres se lèvent dès le premier affichage, sans attendre le script (sinon le nom paraît, disparaît, puis se lève) */
+@media (prefers-reduced-motion: no-preference) {
+  .ld-l > span { transform: translateY(110%); animation: pf-line 900ms var(--ease-expo) calc(var(--i, 0) * 70ms) forwards; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ld-l > span { opacity: 0; animation: pf-rise 400ms ease calc(var(--i, 0) * 50ms) forwards; }
+}
 .ld-pct { position: absolute; left: 0; right: 0; bottom: 28px; margin: 0; text-align: center; font-size: var(--t-small); font-weight: 600; font-variant-numeric: tabular-nums; }
 /* Mouvement réduit : l'accueil est déjà en place derrière, les lettres restent noires ; l'écran s'efface simplement */
 @media (prefers-reduced-motion: reduce) { .ld { mix-blend-mode: normal; } }
