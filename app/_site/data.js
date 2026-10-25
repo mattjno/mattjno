@@ -42,9 +42,10 @@ function fallbackChapter({ fallback, min, folders, ...s }) {
 // Photo du matériel pour l'accueil : { src, w, h, cut } (cut : détourée, fond transparent)
 const gearOf = ({ src, w, h }) => ({ src, w, h, cut: /\.png$/i.test(src) });
 
-// Sony α1 II et FE 300 mm F2.8 GM OSS, vus de dessus (photo de Matthieu, détourée avec tools/detoure.swift).
-// Dimensions écrites ici : le serveur ne relit pas public/ une fois en ligne.
-const GEAR_PHOTO = gearOf({ src: "/materiel/alpha1-ii-300mm.png", w: 522, h: 1290 });
+// Tout le matériel de Matthieu étalé sur fond noir, vu de dessus (image qu'il a fournie le 25/10/2026, « pour le
+// moment ») : le fond entier de l'accueil. Sa photo précédente, détourée (alpha1-ii-300mm.png, 522 × 1290), reste
+// dans public/materiel/ pour revenir en arrière. Dimensions écrites ici : le serveur ne relit pas public/ en ligne.
+const GEAR_PHOTO = gearOf({ src: "/materiel/kit-a-plat.webp", w: 1475, h: 1066 });
 
 function fallbackSite() {
   return { hero: HERO.map(strip), gear: GEAR_PHOTO, chapters: SPORTS.map(fallbackChapter), source: "selection" };

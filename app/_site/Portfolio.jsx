@@ -39,7 +39,7 @@ const ratio = (p) => +(p.w / p.h).toFixed(4);
 
 // Accueil, avec la photo du matériel : les réglages de Matthieu au bord du terrain, et son matériel
 const SETTINGS = "300 mm · f/2.8 · 1/2000 s";
-const GEAR = "Sony α1 II · FE 300 mm F2.8 GM OSS";
+const GEAR = "Sony α1 II + 300 mm F2.8 GM · α7 V + 70-200 mm F2.8 GM II";
 
 // Ballon du football, dessiné : pentagone central, cinq pentagones vers le bord, coutures des hexagones.
 // Coordonnées de -50 à 50 ; calculé une fois.

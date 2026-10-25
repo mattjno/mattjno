@@ -115,6 +115,7 @@ html.lenis, html.lenis body { height: auto; }
   .hx-side { left: 0; right: 0; top: calc(clamp(88px, 17svh, 200px) + min(19.5vw, 36svh) * 0.8 + 64px); width: auto; text-align: center; }
   .hx-side p:not(.hx-side__head), .hx-link, .hx-spec, .hx-scroll { display: none; }
   .hx-gear { --gh: min(78svh, 160vw); }
+  .hx-gear:not(.is-cut) img { object-position: 70% 25%; } /* écran en hauteur : les téléobjectifs blancs plutôt que l'ordinateur */
 }
 
 /* ---------- Bandeau : discret en descendant, revient en remontant ---------- */
