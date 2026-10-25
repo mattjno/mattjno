@@ -4,13 +4,14 @@
 // une grille par sport, une visionneuse plein écran. Les photos ne sont jamais modifiées : seuls leurs cadres bougent.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import "@fontsource-variable/instrument-sans";
 import Viewer from "./Viewer";
-import { PASSAGES, BallArt, FieldArt, LensFront, LensSide, fits, passage as playPassage } from "./Passage";
+import Pic from "./Pic";
+import { Loader, FocusCursor } from "./Camera";
+import { PASSAGES, BallArt, FieldArt, fits, passage as playPassage } from "./Passage";
 import { pack, span } from "./pack";
 import "./site.css";
 
@@ -18,7 +19,6 @@ const INSTAGRAM = "https://instagram.com/matt.jno";
 const HERO_INTERVAL = 5500;
 // Ouvertures de chapitre : un peu plus vif qu'à l'accueil, on y passe moins de temps
 const CHAPTER_INTERVAL = 4500;
-const LOCAL = process.env.NEXT_PUBLIC_LOCAL_IMG === "1";
 // Grands écrans où les scènes tenues ont la place de jouer (la tablette en portrait suit le téléphone)
 const WIDE = "(min-width: 1024px) and (min-height: 560px)";
 
@@ -36,6 +36,10 @@ const SIZES = {
 };
 
 const ratio = (p) => +(p.w / p.h).toFixed(4);
+
+// Accueil, avec la photo du matériel : les réglages de Matthieu au bord du terrain, et son matériel
+const SETTINGS = "300 mm · f/2.8 · 1/2000 s";
+const GEAR = "Sony α1 II · FE 300 mm F2.8 GM OSS";
 
 // Ballon du football, dessiné : pentagone central, cinq pentagones vers le bord, coutures des hexagones.
 // Coordonnées de -50 à 50 ; calculé une fois.
@@ -104,12 +108,6 @@ function cycler(open) {
   };
 }
 
-function Pic({ p, sizes, priority = false, quality = 80, alt = "", focal = false, loading }) {
-  const src = LOCAL && p.i != null ? `/_local/v/${p.i}.jpg` : p.src;
-  const style = focal && p.fx != null ? { objectPosition: `${p.fx}% ${p.fy}%` } : undefined;
-  return <Image src={src} alt={alt} fill sizes={sizes} priority={priority} loading={loading} quality={quality} unoptimized={LOCAL} style={style} draggable={false} />;
-}
-
 // Passage « travelling » : une bande de photos du sport, entières, à la même hauteur. La case du centre est vide :
 // c'est la fenêtre de l'ouverture, réduite à sa taille, qui y passe puis grandit jusqu'au plein écran.
 function Strip({ ch }) {
@@ -153,21 +151,10 @@ function startWindow(fx = 50, fy = 50) {
 // Découpe à l'avancement p (0 : fenêtre de départ, 1 : plein écran)
 const insetAt = (s, p) => `inset(${s.map((v) => `${(v * (1 - p)).toFixed(3)}%`).join(" ")})`;
 
-// Le viseur (coins du cadre, collimateur d'autofocus) et les deux rideaux de l'obturateur
-function Finder() {
-  return (
-    <div className="vf" aria-hidden="true">
-      <div className="vf-corners"><i /><i /><i /><i /></div>
-      <span className="vf-af" />
-      <div className="vf-shutter"><span /><span /></div>
-    </div>
-  );
-}
-
-function Opener({ ch, count, passage, lead }) {
+function Opener({ ch, count, passage }) {
   const first = ch.slides[0];
   return (
-    <div className="ch-open" style={{ "--hold": ch.hold }} data-fx={first.fx ?? 50} data-fy={first.fy ?? 50} data-passage={passage || undefined} data-full={passage === "objectif" && lead ? "1" : undefined}>
+    <div className="ch-open" style={{ "--hold": ch.hold }} data-fx={first.fx ?? 50} data-fy={first.fy ?? 50} data-passage={passage || undefined}>
       <div className="ch-stage">
         {passage === "travelling" && <Strip ch={ch} />}
         <div className="ch-win">
@@ -181,13 +168,6 @@ function Opener({ ch, count, passage, lead }) {
         </div>
         {passage === "ballon" && <div className="ch-pre ch-ball" aria-hidden="true"><BallArt id={ch.id} /></div>}
         {passage === "terrain" && <div className="ch-pre ch-field" aria-hidden="true"><FieldArt id={ch.id} /></div>}
-        {passage === "objectif" && (
-          <div className="ob" aria-hidden="true">
-            {lead && <div className="ob-side"><LensSide /></div>}
-            <LensFront />
-          </div>
-        )}
-        {passage === "objectif" && <Finder />}
         <div className="ch-scrim" />
         <div className="ch-text">
           <h2 className="ch-title" id={`${ch.id}-h`}>{ch.full ?? ch.name}</h2>
@@ -280,7 +260,7 @@ function Side({ g, ...f }) {
   );
 }
 
-export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
+export default function Portfolio({ hero: HERO, gear, chapters: CHAPTERS }) {
   const root = useRef(null);
   const navRef = useRef(null);
   const menuRef = useRef(null);
@@ -288,6 +268,14 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
   const reduceRef = useRef(false);
   const frames = useRef(new Map());
   const [slide, setSlide] = useState(0);
+  // Chargement : tant qu'il joue, la page ne défile pas
+  const bootRef = useRef(true);
+  const [booting, setBooting] = useState(true);
+  // La rafale du chargement : les photos de l'accueil et la première de chaque sport
+  const bootShots = useMemo(() => {
+    const all = [...HERO, ...CHAPTERS.map((c) => c.slides[0])];
+    return all.filter((p, i) => all.findIndex((q) => q.src === p.src) === i).slice(0, 8);
+  }, [HERO, CHAPTERS]);
   const [cstatus, setCstatus] = useState("idle");
   const [active, setActive] = useState(null);
   const [menu, setMenu] = useState(false);
@@ -348,6 +336,7 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
     if (!reduce) {
       lenis = new Lenis({ lerp: 0.12 });
       lenisRef.current = lenis;
+      if (bootRef.current) lenis.stop();
       lenis.on("scroll", ScrollTrigger.update);
       gsap.ticker.add(tick);
       gsap.ticker.lagSmoothing(0);
@@ -400,6 +389,8 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
       gsap.to(q(".p-hero__media"), { yPercent: 8, scale: 1.06, ease: "none", scrollTrigger: { trigger: hero, start: "top top", end: "bottom top", scrub: true } });
       gsap.to(q(".p-hero__dim"), { opacity: 0.45, ease: "none", scrollTrigger: { trigger: hero, start: "top top", end: "bottom top", scrub: true } });
       gsap.to(q(".p-hero__text"), { yPercent: -30, opacity: 0, ease: "none", scrollTrigger: { trigger: hero, start: "top top", end: "70% top", scrub: true } });
+      gsap.to(q(".hx-gear"), { yPercent: -8, scale: 0.92, ease: "none", scrollTrigger: { trigger: hero, start: "top top", end: "bottom top", scrub: true } });
+      gsap.to(q(".hx-meta"), { opacity: 0, ease: "none", scrollTrigger: { trigger: hero, start: "top top", end: "35% top", scrub: true } });
 
       // ---------- Chapitres, dans l'ordre de la page : chaque déclencheur est calculé après ceux du dessus ----------
       CHAPTERS.forEach((ch) => {
@@ -452,13 +443,10 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
             onRefresh: () => { start = startWindow(fx, fy); paint(); },
           });
         }
-        // L'objectif montre le titre lui-même, au déclenchement
-        if (open.dataset.passage !== "objectif") {
-          gsap.from(open.querySelectorAll(".ch-title, .ch-meta"), {
-            yPercent: 30, opacity: 0, duration: 1, stagger: 0.08, ease: "expo.out",
-            scrollTrigger: { trigger: open, start: "top 70%" },
-          });
-        }
+        gsap.from(open.querySelectorAll(".ch-title, .ch-meta"), {
+          yPercent: 30, opacity: 0, duration: 1, stagger: 0.08, ease: "expo.out",
+          scrollTrigger: { trigger: open, start: "top 70%" },
+        });
 
         // Football : le but. Un ballon part du bas de l'écran, file en courbe et frappe la lucarne de la grille ;
         // le filet tremble depuis l'impact et les photos s'allument dans l'onde. Un tir reste rapide : il se joue
@@ -617,6 +605,16 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
     };
   }, [cols, passage]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (bootRef.current) document.documentElement.classList.add("pf-locked");
+  }, []);
+  const booted = useCallback(() => {
+    bootRef.current = false;
+    document.documentElement.classList.add("is-ready");
+    setBooting(false);
+    lock(false);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const lock = (on) => {
     const l = lenisRef.current;
     if (l) (on ? l.stop() : l.start());
@@ -726,10 +724,10 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
       )}
 
       <main>
-        <header className="p-hero pf-hero" id="top">
-          <div className="p-hero__media">
+        <header className={`p-hero pf-hero${gear ? " is-gear" : ""}`} id="top">
+          {!gear && <div className="p-hero__media">
             {HERO.map((p, i) => (
-              <div key={p.src} className={`p-hero__slide${i === slide ? " is-active" : ""}`}>
+              <div key={p.src} className={`p-hero__slide${i === slide ? " is-active" : ""}`} data-boot={i === 0 ? "" : undefined}>
                 <div className="p-hero__img p-fill" style={{ transformOrigin: `${p.fx ?? 50}% ${p.fy ?? 50}%` }}>
                   <Pic p={p} sizes="100vw" priority={i === 0} quality={82} focal alt="Photographie de sport par MATT.JNO" />
                 </div>
@@ -737,22 +735,43 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
             ))}
             <div className="p-hero__scrim" />
             <div className="pf-hero__top" />
-          </div>
+          </div>}
           <div className="p-hero__dim" />
           <div className="p-hero__text">
+            {gear && <p className="hx-kicker">{SETTINGS}</p>}
             <h1 className="p-hero__title">
               <span className="p-mask"><span style={{ "--i": 0 }}>Matt</span></span>
               <span className="p-mask"><span style={{ "--i": 1 }}>Jno</span></span>
             </h1>
-            <p className="p-hero__sub">Sports Photographer</p>
+            {!gear && <p className="p-hero__sub">Sports Photographer</p>}
           </div>
+          {gear && (
+            <>
+              {/* Le matériel devant le nom (photo détourée), ou derrière s'il est pris sur fond noir */}
+              <div className={`hx-gear${gear.cut ? " is-cut" : ""}${gear.w < gear.h ? " is-tall" : ""}`} style={{ "--r": ratio(gear) }} data-boot="">
+                <div className="hx-gear__in">
+                  <Pic p={gear} sizes={gear.w < gear.h ? "(min-width: 760px) 40vw, 80vw" : "(min-width: 760px) 86vw, 100vw"} priority quality={90} alt={`Le matériel de MATT.JNO : ${GEAR}`} />
+                </div>
+              </div>
+              {/* Le métier, le matériel, « Défiler » : s'effacent ensemble en descendant */}
+              <div className="hx-meta">
+                <div className="hx-side">
+                  <p className="hx-side__head">Sports Photographer</p>
+                  <p>Football, basket, football américain, handball.</p>
+                  <button className="hx-link" onClick={() => go(CHAPTERS[0].id)}>Voir les photos</button>
+                </div>
+                <p className="hx-spec">{GEAR}</p>
+                <p className="hx-scroll" aria-hidden="true"><span className="hx-af"><i /><i /><i /><i /></span>Défiler</p>
+              </div>
+            </>
+          )}
         </header>
 
         {CHAPTERS.map((ch, i) => {
           const g = galleries[i];
           return (
             <section key={ch.id} id={ch.id} aria-labelledby={`${ch.id}-h`}>
-              <Opener ch={ch} count={ch.slides.length + g.items.length} passage={(i > 0 || passage === "objectif") && passage !== "fenetre" && fits(passage, ch.id) ? passage : null} lead={i === 0} />
+              <Opener ch={ch} count={ch.slides.length + g.items.length} passage={i > 0 && passage !== "fenetre" && fits(passage, ch.id) ? passage : null} />
               {ch.kind === "side"
                 ? <Side g={g} onOpen={openViewer} register={register} />
                 : <Cells g={g} kind={ch.kind} cols={cols} onOpen={openViewer} register={register} />}
@@ -800,6 +819,8 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
       )}
 
       {viewer && <Viewer open={viewer} onClose={closeViewer} />}
+      {booting && <Loader shots={bootShots} onDone={booted} />}
+      <FocusCursor />
     </div>
   );
 }

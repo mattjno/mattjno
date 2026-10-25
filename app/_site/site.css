@@ -70,14 +70,51 @@ html.lenis, html.lenis body { height: auto; }
 .pf-fill { position: absolute; inset: 0; display: block; }
 .pf-fill img { object-fit: cover; }
 
-/* ---------- Hero : la photo est là au premier instant, le nom se lève dessus ---------- */
+/* ---------- Accueil : le nom se lève quand le chargement s'ouvre (html.is-ready) ----------
+   Sans script après le chargement maximal (6 s), il se lève quand même : rien ne reste caché. */
 .pf-hero__top { position: absolute; inset: 0 0 auto 0; height: 140px; background: rgba(8, 8, 8, 0.38); pointer-events: none; mask-image: linear-gradient(to bottom, #000 25%, transparent); -webkit-mask-image: linear-gradient(to bottom, #000 25%, transparent); } /* taste-skill-ignore: scrim neutre sous le bandeau */
 @media (prefers-reduced-motion: no-preference) {
-  .js .pf-hero .p-hero__title .p-mask > span { transform: translateY(110%); animation: pf-line 900ms var(--ease-expo) forwards; animation-delay: calc(120ms + var(--i, 0) * 90ms); }
-  .js .pf-hero .p-hero__sub { opacity: 0; transform: translateY(12px); animation: pf-rise 600ms var(--ease-out) 480ms forwards; }
+  .js .pf-hero .p-hero__title .p-mask > span { transform: translateY(110%); animation: pf-line 900ms var(--ease-expo) 6s forwards; }
+  .js .pf-hero :is(.p-hero__sub, .hx-kicker, .hx-side, .hx-spec, .hx-scroll) { opacity: 0; transform: translateY(12px); animation: pf-rise 600ms var(--ease-out) 6s forwards; }
+  .js .pf-hero .hx-gear__in { opacity: 0; transform: translateY(5%) scale(0.97); animation: pf-rise 1400ms var(--ease-expo) 6s forwards; }
+  .js.is-ready .pf-hero .p-hero__title .p-mask > span { animation-delay: calc(120ms + var(--i, 0) * 90ms); }
+  .js.is-ready .pf-hero .hx-gear__in { animation-delay: 0ms; }
+  .js.is-ready .pf-hero :is(.p-hero__sub, .hx-kicker) { animation-delay: 480ms; }
+  .js.is-ready .pf-hero :is(.hx-side, .hx-spec, .hx-scroll) { animation-delay: 700ms; }
 }
 @keyframes pf-line { to { transform: none; } }
 @keyframes pf-rise { to { opacity: 1; transform: none; } }
+
+/* ---------- Accueil avec la photo du matériel (dossier R2 materiel/) ----------
+   Fond noir, le nom sur une ligne au centre ; le matériel détouré passe devant les lettres (pris sur fond noir, il
+   reste derrière et se fond dans la page). Les réglages au-dessus du nom, le métier à droite, le matériel en bas. */
+.pf-hero.is-gear { background: #000; }
+.is-gear .p-hero__text { left: 0; right: 0; bottom: auto; top: clamp(88px, 17svh, 200px); z-index: 1; display: grid; justify-content: center; } /* grille à la largeur du nom : les réglages s'alignent sur son début */
+.is-gear .p-hero__title { display: flex; justify-content: center; font-size: min(19.5vw, 36svh); line-height: 0.8; letter-spacing: -0.06em; }
+.hx-kicker { justify-self: start; margin-bottom: clamp(14px, 2.4svh, 28px); font-size: var(--t-small); font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hx-gear { --gh: min(86svh, 160vw); position: absolute; z-index: 0; bottom: 0; height: var(--gh); width: calc(var(--gh) * var(--r)); left: calc(50% - var(--gh) * var(--r) / 2); pointer-events: none; }
+.hx-gear:not(.is-tall) { --gw: min(84vw, 150svh); width: var(--gw); height: calc(var(--gw) / var(--r)); left: calc(50% - var(--gw) / 2); bottom: 4svh; }
+.hx-gear.is-cut { z-index: 2; }
+.hx-gear__in { position: absolute; inset: 0; }
+.hx-gear img { object-fit: contain; }
+/* Pris sur fond noir : les bords se perdent dans la page */
+.hx-gear:not(.is-cut) .hx-gear__in { mask-image: radial-gradient(closest-side, #000 72%, transparent); -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent); } /* taste-skill-ignore: fondu du bord de la photo dans le noir */
+.hx-meta { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.hx-side { position: absolute; right: var(--margin); top: 54%; width: min(300px, 24vw); pointer-events: auto; }
+.hx-side p { color: var(--muted); font-size: var(--t-small); }
+.hx-side .hx-side__head { color: var(--ink); font-size: var(--t-lead); font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 10px; }
+.proto .hx-link { margin-top: 18px; background: none; border: 0; padding: 4px 0; cursor: pointer; font-weight: 600; font-size: var(--t-small); position: relative; }
+.hx-link::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: currentColor; transform: scaleX(0.3); transform-origin: left; transition: transform 400ms var(--ease-out); }
+@media (hover: hover) { .hx-link:hover::after { transform: scaleX(1); } }
+.hx-spec { position: absolute; right: var(--margin); bottom: 24px; font-size: 13px; color: var(--muted); }
+/* « Défiler », en bas à gauche (le matériel occupe le centre), après un petit collimateur */
+.hx-scroll { position: absolute; left: var(--margin); bottom: 24px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.hx-af { position: relative; width: 18px; height: 14px; color: #ff3b30; }
+@media (max-width: 1023px) {
+  .hx-side { left: 0; right: 0; top: calc(clamp(88px, 17svh, 200px) + min(19.5vw, 36svh) * 0.8 + 64px); width: auto; text-align: center; }
+  .hx-side p:not(.hx-side__head), .hx-link, .hx-spec, .hx-scroll { display: none; }
+  .hx-gear { --gh: min(58svh, 150vw); } /* sous le métier, qui resterait illisible sur le pare-soleil blanc */
+}
 
 /* ---------- Bandeau : discret en descendant, revient en remontant ---------- */
 .pf-nav { transition: transform 450ms var(--ease-out), background-color 300ms ease; }
@@ -150,45 +187,56 @@ html.lenis, html.lenis body { height: auto; }
   .ch-pre, .ch-strip { display: none; }
 }
 
-/* ---------- Objectif : le 300 mm, puis la photo vue à travers ----------
-   Un écran de défilement pour la face seule, un et demi avec le profil (premier chapitre). */
-.ch-open[data-passage="objectif"] { --pre: 1; }
-.ch-open[data-passage="objectif"][data-full] { --pre: 1.6; }
-@media (max-width: 1023px), (max-height: 559px) {
-  .ch-open[data-passage="objectif"] { --pre: 0.5; }
-  .ch-open[data-passage="objectif"][data-full] { --pre: 0.8; }
+/* ---------- Chargement : le viseur du boîtier (Camera.jsx) ----------
+   Les photos de la rafale, floues puis nettes (--focus, de 0 à 1), sous l'affichage du boîtier : vues restantes,
+   format, réglages, jauge du tampon et pourcentage en rouge ; le collimateur passe au vert, l'obturateur claque.
+   Sans script ou déjà chargé dans l'onglet (html.seen) : rien. Au pire, il s'efface de lui-même après 6 s. */
+.ld { --focus: 0; position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: #000; color: var(--ink); animation: ld-bail 0.4s 6s forwards; }
+html:not(.js) .ld, .seen .ld { display: none; }
+@keyframes ld-bail { to { opacity: 0; visibility: hidden; } }
+.ld.is-open { background: transparent; }
+.ld.is-open .ld-view { visibility: hidden; }
+.ld-view { position: relative; width: min(72vw, calc(66svh * 1.5)); aspect-ratio: 3 / 2; }
+.ld-frame { position: absolute; inset: 0; overflow: clip; background: #0b0b0b; }
+.ld-shot { position: absolute; inset: 0; opacity: 0; transition: opacity 120ms linear; filter: blur(calc((1 - var(--focus)) * 14px)) brightness(0.6); }
+.ld-shot.is-on { opacity: 1; }
+.ld-shot img { object-fit: cover; }
+.ld-ui { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 2.6% 3.2%; font-size: clamp(11px, 1vw, 14px); font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.ld-row { display: flex; align-items: center; gap: 1.6em; }
+.ld-grow { margin-right: auto; }
+.ld-af { position: absolute; left: 50%; top: 50%; width: 6%; aspect-ratio: 5 / 4; transform: translate(-50%, -50%); color: #ff3b30; transition: color 120ms ease, transform 200ms var(--ease-out); }
+.ld-af i, .fc i, .hx-af i { position: absolute; width: 30%; height: 30%; border: 0 solid currentColor; }
+.ld-af i:nth-child(1), .fc i:nth-child(1), .hx-af i:nth-child(1) { left: 0; top: 0; border-width: 2px 0 0 2px; }
+.ld-af i:nth-child(2), .fc i:nth-child(2), .hx-af i:nth-child(2) { right: 0; top: 0; border-width: 2px 2px 0 0; }
+.ld-af i:nth-child(3), .fc i:nth-child(3), .hx-af i:nth-child(3) { left: 0; bottom: 0; border-width: 0 0 2px 2px; }
+.ld-af i:nth-child(4), .fc i:nth-child(4), .hx-af i:nth-child(4) { right: 0; bottom: 0; border-width: 0 2px 2px 0; }
+.ld.is-lock .ld-af { color: #4cd964; transform: translate(-50%, -50%) scale(0.8); }
+.ld-gauge { display: flex; gap: 2px; }
+.ld-gauge i { width: 5px; height: 10px; background: rgba(241, 241, 239, 0.25); }
+.ld-gauge i.is-on { background: var(--ink); }
+.ld-pct { min-width: 3.2em; text-align: right; color: #ff3b30; }
+.ld.is-lock .ld-pct { color: #4cd964; }
+.ld-shutter span { position: absolute; left: 0; right: 0; height: 50.5%; background: #000; transform: scaleY(0); }
+.ld-shutter span:first-child { top: 0; transform-origin: top; }
+.ld-shutter span:last-child { bottom: 0; transform-origin: bottom; }
+@media (max-width: 759px) {
+  .ld-view { width: 92vw; }
+  .ld-row { gap: 1em; }
+  .ld-row span:nth-child(5) { display: none; }
 }
-.ob { position: absolute; inset: 0; perspective: 1400px; pointer-events: none; }
-.ob-side { position: absolute; left: 50%; top: 50%; opacity: 0; will-change: transform; }
-.ob-side svg { display: block; width: 100%; height: auto; overflow: visible; }
-.ob-face { --u: 1px; position: absolute; left: 50%; top: 50%; opacity: 0; transform-style: preserve-3d; will-change: transform; } /* --u : centième du diamètre, posé par le script */
-.ob-ring { position: absolute; left: 50%; top: 50%; border-radius: 50%; }
-/* Du devant vers le fond : pare-soleil blanc, son intérieur sombre, bague de filtre au liseré bleuté, lentille */
-.ob-hood { width: 100%; height: 100%; border: calc(var(--u) * 4.5) solid #ecebe7; box-sizing: border-box; }
-.ob-hood-in { width: 91%; height: 91%; border: calc(var(--u) * 6) solid #161616; box-sizing: border-box; }
-.ob-filter { width: 79%; height: 79%; border: calc(var(--u) * 3.2) solid #232323; box-sizing: border-box; }
-.ob-rim { width: 72%; height: 72%; border: calc(var(--u) * 0.5) solid #4a5677; box-sizing: border-box; }
-.ob-glass { --clear: 0; width: 70%; height: 70%; background: rgba(6, 7, 10, calc(1 - var(--clear))); overflow: clip; }
-/* Reflets du verre : deux arcs clairs */
-.ob-glass i { position: absolute; border-radius: 50%; border: calc(var(--u) * 0.5) solid transparent; border-top-color: rgba(241, 241, 239, 0.4); }
-.ob-glass i:first-child { inset: 8%; transform: rotate(-35deg); }
-.ob-glass i:last-child { inset: 24%; transform: rotate(-20deg); border-top-color: rgba(241, 241, 239, 0.22); }
-.ob-inner { width: 46%; height: 46%; border: calc(var(--u) * 0.4) solid rgba(241, 241, 239, 0.14); box-sizing: border-box; }
-/* Viseur : quatre coins du cadre, collimateur d'autofocus ; l'obturateur, deux rideaux noirs */
-.vf { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
-.vf-corners { position: absolute; inset: 7% 6%; opacity: 0; }
-.vf-corners i { position: absolute; width: clamp(24px, 3vw, 44px); height: clamp(24px, 3vw, 44px); border: 0 solid var(--ink); }
-.vf-corners i:nth-child(1) { left: 0; top: 0; border-width: 3px 0 0 3px; }
-.vf-corners i:nth-child(2) { right: 0; top: 0; border-width: 3px 3px 0 0; }
-.vf-corners i:nth-child(3) { left: 0; bottom: 0; border-width: 0 0 3px 3px; }
-.vf-corners i:nth-child(4) { right: 0; bottom: 0; border-width: 0 3px 3px 0; }
-.vf-af { position: absolute; width: clamp(44px, 5vw, 72px); aspect-ratio: 4 / 3; border: 2px solid var(--ink); opacity: 0; }
-.vf.is-off .vf-corners, .vf.is-off .vf-af { visibility: hidden; }
-.vf-shutter span { position: absolute; left: 0; right: 0; height: 50.5%; background: #000; }
-.vf-shutter span:first-child { top: 0; }
-.vf-shutter span:last-child { bottom: 0; }
+
+/* ---------- Curseur : le collimateur d'autofocus, rouge ; vert et resserré sur ce qui se clique ---------- */
+.has-cursor, .has-cursor * { cursor: none !important; }
+.has-cursor :is(input, textarea, select) { cursor: text !important; }
+.fc { position: fixed; left: 0; top: 0; z-index: 2147483000; pointer-events: none; opacity: 0; color: #ff3b30; transition: opacity 150ms ease, color 120ms ease; }
+.fc.is-on { opacity: 1; }
+.fc.is-text { opacity: 0; }
+.fc-box { position: absolute; left: -15px; top: -12px; width: 30px; height: 24px; transition: transform 160ms var(--ease-out); filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8)); } /* taste-skill-ignore: liseré sombre pour garder le collimateur lisible sur une photo claire */
+.fc.is-lock { color: #4cd964; }
+.fc.is-lock .fc-box { transform: scale(0.78); }
+.fc.is-press .fc-box { transform: scale(0.62); }
 @media (prefers-reduced-motion: reduce) {
-  .ob, .vf { display: none; }
+  .fc, .fc-box, .ld-af { transition: none; }
 }
 
 /* Barre de choix du passage : prévisualisation seulement (cachée sur mattjno.com) */
