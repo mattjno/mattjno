@@ -100,6 +100,8 @@ html.lenis, html.lenis body { height: auto; }
 /* Tout le matériel étalé, photographié à plat : le fond entier de l'accueil, plus sombre encore */
 .hx-gear:not(.is-cut) { inset: 0; width: auto; height: auto; opacity: 0.3; }
 .hx-gear:not(.is-cut) img { object-fit: cover; }
+/* Photo en hauteur sur un écran large : entière, au centre ; son fond noir se confond avec la page */
+.hx-gear:not(.is-cut).is-tall img { object-fit: contain; }
 .hx-meta { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 .hx-side { position: absolute; right: var(--margin); top: 54%; width: min(300px, 24vw); pointer-events: auto; }
 .hx-side p { color: var(--muted); font-size: var(--t-small); }
@@ -115,7 +117,8 @@ html.lenis, html.lenis body { height: auto; }
   .hx-side { left: 0; right: 0; top: calc(clamp(88px, 17svh, 200px) + min(19.5vw, 36svh) * 0.8 + 64px); width: auto; text-align: center; }
   .hx-side p:not(.hx-side__head), .hx-link, .hx-spec, .hx-scroll { display: none; }
   .hx-gear { --gh: min(78svh, 160vw); }
-  .hx-gear:not(.is-cut) img { object-position: 70% 25%; } /* écran en hauteur : les téléobjectifs blancs plutôt que l'ordinateur */
+  .hx-gear:not(.is-cut).is-tall img { object-position: 50% 100%; } /* entière, calée en bas, sous le métier */
+  .hx-gear:not(.is-cut):not(.is-tall) img { object-position: 70% 25%; } /* photo en largeur : les téléobjectifs blancs plutôt que le bord */
 }
 
 /* ---------- Bandeau : discret en descendant, revient en remontant ---------- */
