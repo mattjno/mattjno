@@ -95,7 +95,7 @@ html.lenis, html.lenis body { height: auto; }
 /* ---------- Accueil avec la photo du matériel (public/materiel/, ou le dossier R2 materiel/) ----------
    Fond noir, le nom sur une ligne au centre, au premier plan ; le matériel reste derrière, atténué. Détouré (PNG), il
    se dresse au centre ; photographié à plat sur un fond sombre (JPEG, tout le matériel étalé), il remplit le fond.
-   Le métier à droite, le matériel en bas. */
+   Le métier à gauche sous le nom, la liste du matériel en bas à droite. */
 .pf-hero.is-gear { background: #000; }
 .is-gear { --name-top: clamp(120px, 26svh, 300px); } /* haut du nom */
 .is-gear .p-hero__text { left: 0; right: 0; bottom: auto; top: var(--name-top); z-index: 1; display: flex; justify-content: center; }
@@ -107,10 +107,14 @@ html.lenis, html.lenis body { height: auto; }
 /* Tout le matériel étalé, photographié à plat : le fond entier de l'accueil, plus sombre encore */
 .hx-gear:not(.is-cut) { inset: 0; width: auto; height: auto; opacity: 0.3; }
 .hx-gear:not(.is-cut) img { object-fit: cover; }
+/* Photo en largeur : descendue (--gear-y) pour que le 300 mm se voie sous le nom, et non derrière ; son bord haut se
+   fond dans le noir */
+.hx-gear:not(.is-cut):not(.is-tall) { --gear-y: 18svh; }
+.hx-gear:not(.is-cut):not(.is-tall) img { object-position: 50% var(--gear-y); mask-image: linear-gradient(to bottom, transparent var(--gear-y), #000 calc(var(--gear-y) + 10svh)); -webkit-mask-image: linear-gradient(to bottom, transparent var(--gear-y), #000 calc(var(--gear-y) + 10svh)); }
 /* Photo en hauteur sur un écran large : entière, au centre ; son fond noir se confond avec la page */
 .hx-gear:not(.is-cut).is-tall img { object-fit: contain; }
 .hx-meta { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
-.hx-side { position: absolute; right: var(--margin); top: 54%; width: min(300px, 24vw); pointer-events: auto; }
+.hx-side { position: absolute; left: var(--margin); top: calc(var(--name-top) + min(19.5vw, 36svh) * 0.8 + 32px); width: min(300px, 24vw); pointer-events: auto; }
 .hx-side p { color: var(--muted); font-size: var(--t-small); }
 .hx-side .hx-side__head { color: var(--ink); font-size: var(--t-lead); font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 10px; }
 .proto .hx-link { margin-top: 18px; background: none; border: 0; padding: 4px 0; cursor: pointer; font-weight: 600; font-size: var(--t-small); position: relative; }
@@ -125,7 +129,8 @@ html.lenis, html.lenis body { height: auto; }
   .hx-side p:not(.hx-side__head), .hx-link, .hx-spec, .hx-scroll { display: none; }
   .hx-gear { --gh: min(78svh, 160vw); }
   .hx-gear:not(.is-cut).is-tall img { object-position: 50% 100%; } /* entière, calée en bas, sous le métier */
-  .hx-gear:not(.is-cut):not(.is-tall) img { object-position: 45% 35%; } /* photo en largeur : le 300 mm et les boîtiers, au centre */
+  .hx-gear:not(.is-cut):not(.is-tall) { --gear-y: 12svh; }
+  .hx-gear:not(.is-cut):not(.is-tall) img { object-position: 45% var(--gear-y); } /* le 300 mm et les boîtiers, au centre */
 }
 
 /* ---------- Bandeau : discret en descendant, revient en remontant ---------- */
