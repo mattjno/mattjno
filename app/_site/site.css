@@ -150,45 +150,45 @@ html.lenis, html.lenis body { height: auto; }
   .ch-pre, .ch-strip { display: none; }
 }
 
-/* ---------- Voyage : couloir du stade, terrain, place du photographe ----------
-   Trois écrans et demi de défilement sur grand écran (un peu plus d'un au doigt, où il se joue comme un film). */
-.ch-open[data-passage="voyage"] { --pre: 3.4; }
-@media (max-width: 1023px), (max-height: 559px) { .ch-open[data-passage="voyage"] { --pre: 1.2; } }
-.vo { position: absolute; inset: 0; overflow: clip; pointer-events: none; }
-.vo-world { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; will-change: transform; }
-.vo-world > * { position: absolute; left: 0; top: 0; }
-.vo-light { background: var(--ink); }
-.vo-wall { background: #111; overflow: clip; }
-.vo-strip { overflow: clip; }
-/* Surfaces : pelouse tondue en bandes, parquet, sol de handball ; le bord se perd dans la nuit */
-.vo-turf {
-  --turf: #1d4a2a; --turf-2: #215230; --band: 40px;
-  position: absolute; left: 0;
-  background: repeating-linear-gradient(0deg, var(--turf) 0 var(--band), var(--turf-2) var(--band) calc(var(--band) * 2)); /* taste-skill-ignore: bandes de tonte franches, pas un dégradé */
-  mask-image: radial-gradient(farthest-side, #000 80%, transparent); -webkit-mask-image: radial-gradient(farthest-side, #000 80%, transparent);
+/* ---------- Objectif : le 300 mm, puis la photo vue à travers ----------
+   Un écran de défilement pour la face seule, un et demi avec le profil (premier chapitre). */
+.ch-open[data-passage="objectif"] { --pre: 1; }
+.ch-open[data-passage="objectif"][data-full] { --pre: 1.6; }
+@media (max-width: 1023px), (max-height: 559px) {
+  .ch-open[data-passage="objectif"] { --pre: 0.5; }
+  .ch-open[data-passage="objectif"][data-full] { --pre: 0.8; }
 }
-.vo[data-sport="basket"] .vo-turf { --turf: #5c3b22; --turf-2: #56371f; --band: 6px; }
-.vo[data-sport="handball"] .vo-turf { --turf: #1f3f74; --turf-2: #1f3f74; }
-.vo-field { position: absolute; transform: rotate(90deg); }
-.vo-field svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.vo-field path { fill: none; stroke: #f1f1ef; stroke-width: var(--sw, 0.3); opacity: 0.92; }
-.vo-lamp { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8%; padding: 4%; background: #1a1a1a; }
-.vo-lamp i { background: var(--ink); }
-.vo-hero { overflow: clip; background: #111; }
-.vo-over { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
-/* Viseur : les quatre coins du cadre et le collimateur d'autofocus */
-.vo-finder { position: absolute; inset: 7% 6%; opacity: 0; }
-.vo-finder i { position: absolute; width: clamp(24px, 3vw, 44px); height: clamp(24px, 3vw, 44px); border: 0 solid var(--ink); }
-.vo-finder i:nth-child(1) { left: 0; top: 0; border-width: 3px 0 0 3px; }
-.vo-finder i:nth-child(2) { right: 0; top: 0; border-width: 3px 3px 0 0; }
-.vo-finder i:nth-child(3) { left: 0; bottom: 0; border-width: 0 0 3px 3px; }
-.vo-finder i:nth-child(4) { right: 0; bottom: 0; border-width: 0 3px 3px 0; }
-.vo-af { position: absolute; width: clamp(44px, 5vw, 72px); aspect-ratio: 4 / 3; border: 2px solid var(--ink); opacity: 0; }
-.vo-shutter span { position: absolute; left: 0; right: 0; height: 50.5%; background: #000; }
-.vo-shutter span:first-child { top: 0; }
-.vo-shutter span:last-child { bottom: 0; }
+.ob { position: absolute; inset: 0; perspective: 1400px; pointer-events: none; }
+.ob-side { position: absolute; left: 50%; top: 50%; opacity: 0; will-change: transform; }
+.ob-side svg { display: block; width: 100%; height: auto; overflow: visible; }
+.ob-face { --u: 1px; position: absolute; left: 50%; top: 50%; opacity: 0; transform-style: preserve-3d; will-change: transform; } /* --u : centième du diamètre, posé par le script */
+.ob-ring { position: absolute; left: 50%; top: 50%; border-radius: 50%; }
+/* Du devant vers le fond : pare-soleil blanc, son intérieur sombre, bague de filtre au liseré bleuté, lentille */
+.ob-hood { width: 100%; height: 100%; border: calc(var(--u) * 4.5) solid #ecebe7; box-sizing: border-box; }
+.ob-hood-in { width: 91%; height: 91%; border: calc(var(--u) * 6) solid #161616; box-sizing: border-box; }
+.ob-filter { width: 79%; height: 79%; border: calc(var(--u) * 3.2) solid #232323; box-sizing: border-box; }
+.ob-rim { width: 72%; height: 72%; border: calc(var(--u) * 0.5) solid #4a5677; box-sizing: border-box; }
+.ob-glass { --clear: 0; width: 70%; height: 70%; background: rgba(6, 7, 10, calc(1 - var(--clear))); overflow: clip; }
+/* Reflets du verre : deux arcs clairs */
+.ob-glass i { position: absolute; border-radius: 50%; border: calc(var(--u) * 0.5) solid transparent; border-top-color: rgba(241, 241, 239, 0.4); }
+.ob-glass i:first-child { inset: 8%; transform: rotate(-35deg); }
+.ob-glass i:last-child { inset: 24%; transform: rotate(-20deg); border-top-color: rgba(241, 241, 239, 0.22); }
+.ob-inner { width: 46%; height: 46%; border: calc(var(--u) * 0.4) solid rgba(241, 241, 239, 0.14); box-sizing: border-box; }
+/* Viseur : quatre coins du cadre, collimateur d'autofocus ; l'obturateur, deux rideaux noirs */
+.vf { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.vf-corners { position: absolute; inset: 7% 6%; opacity: 0; }
+.vf-corners i { position: absolute; width: clamp(24px, 3vw, 44px); height: clamp(24px, 3vw, 44px); border: 0 solid var(--ink); }
+.vf-corners i:nth-child(1) { left: 0; top: 0; border-width: 3px 0 0 3px; }
+.vf-corners i:nth-child(2) { right: 0; top: 0; border-width: 3px 3px 0 0; }
+.vf-corners i:nth-child(3) { left: 0; bottom: 0; border-width: 0 0 3px 3px; }
+.vf-corners i:nth-child(4) { right: 0; bottom: 0; border-width: 0 3px 3px 0; }
+.vf-af { position: absolute; width: clamp(44px, 5vw, 72px); aspect-ratio: 4 / 3; border: 2px solid var(--ink); opacity: 0; }
+.vf.is-off .vf-corners, .vf.is-off .vf-af { visibility: hidden; }
+.vf-shutter span { position: absolute; left: 0; right: 0; height: 50.5%; background: #000; }
+.vf-shutter span:first-child { top: 0; }
+.vf-shutter span:last-child { bottom: 0; }
 @media (prefers-reduced-motion: reduce) {
-  .vo, .vo-over { display: none; }
+  .ob, .vf { display: none; }
 }
 
 /* Barre de choix du passage : prévisualisation seulement (cachée sur mattjno.com) */
@@ -231,7 +231,7 @@ html.lenis, html.lenis body { height: auto; }
 @media (max-width: 759px) { .fg-grid, .ro-grid, .mo-grid { --cols: 2; } }
 @media (min-width: 1700px) { .fg-grid, .ro-grid, .mo-grid { --cols: 5; } }
 .fg-item, .ro-item, .mo-item { margin: 0; grid-column: span var(--s, 1); }
-.fg-frame, .ro-frame, .mo-frame { height: calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols) * 4 / 3); }
+.fg-frame, .ro-frame, .mo-frame { height: calc((calc(var(--u) * 100) - (var(--cols) - 1) * var(--gap)) / var(--cols) * 4 / 3); }
 .is-full > .pf-btn { height: auto; aspect-ratio: var(--r); }
 .ro-item { will-change: transform; }
 .mo-item { display: flex; flex-direction: column; }
