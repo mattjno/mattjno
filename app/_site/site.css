@@ -168,13 +168,13 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* ---------- Chargement : MATTJNO, à la manière de landonorris.com (Camera.jsx) ----------
-   Un écran blanc (.ld-bg), le nom en noir, aux proportions de celui de l'accueil (graisse, interlignage, interlettrage :
-   seule la taille change). Il se relève comme un store pendant que le nom vole à sa place. Sans script ou déjà chargé
+   Un écran noir comme le site (.ld-bg), le nom en blanc, aux proportions de celui de l'accueil (graisse, interlignage,
+   interlettrage : seule la taille change). Il se relève comme un store pendant que le nom vole à sa place. Sans script ou déjà chargé
    dans l'onglet (html.seen) : rien. Au pire, il s'efface de lui-même après 6 s. */
-.ld { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; color: #000; animation: ld-bail 0.4s 6s forwards; }
+.ld { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; color: var(--ink); animation: ld-bail 0.4s 6s forwards; }
 html:not(.js) .ld, .seen .ld { display: none; }
 @keyframes ld-bail { to { opacity: 0; visibility: hidden; } }
-.ld-bg { position: absolute; inset: 0; background: #fff; transform-origin: 50% 0; }
+.ld-bg { position: absolute; inset: 0; background: var(--bg); transform-origin: 50% 0; }
 .ld-word { position: relative; display: flex; margin: 0; font-weight: 700; font-size: min(17.5vw, 34svh); line-height: 0.9; letter-spacing: -0.02em; text-transform: uppercase; transform-origin: 0 0; will-change: transform; }
 .ld-l { display: block; overflow: clip; padding-bottom: 0.08em; margin-bottom: -0.08em; }
 .ld-l > span { display: block; }

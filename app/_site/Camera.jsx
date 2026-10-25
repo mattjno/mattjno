@@ -10,10 +10,9 @@ const MIN = 1200; // le chargement dure au moins…
 const MAX = 4500; // …et jamais plus, même si une photo traîne
 export const NAME = "MATTJNO"; // le nom du chargement et celui de l'accueil, lettre à lettre l'un comme l'autre
 
-// Chargement : un écran blanc, MATTJNO en noir qui se lève lettre après lettre, l'avancement en bas. Tout chargé,
-// l'accueil s'ouvre (onReveal) : l'écran blanc se relève comme un store et le nom vole jusqu'à sa place, en bas à
-// gauche, en passant au blanc. Il s'y pose exactement sur celui de l'accueil, qui paraît alors ; le chargement a
-// disparu (onDone).
+// Chargement : un écran noir comme le site, MATTJNO en blanc qui se lève lettre après lettre, l'avancement en bas. Tout
+// chargé, l'accueil s'ouvre (onReveal) : l'écran noir se relève comme un store et le nom vole jusqu'à sa place, en bas
+// à gauche. Il s'y pose exactement sur celui de l'accueil, qui paraît alors ; le chargement a disparu (onDone).
 export function Loader({ onReveal, onDone }) {
   const root = useRef(null);
   const bg = useRef(null);
@@ -61,8 +60,6 @@ export function Loader({ onReveal, onDone }) {
         .to(pct.current, { opacity: 0, duration: 0.2 }, 0)
         .to(bg.current, { scaleY: 0, duration: 1, ease: "expo.inOut" }, 0.1)
         .to(word.current, { x: first.left - from.left, y: first.top - from.top, scale: (last.right - first.left) / from.width, duration: 1.1, ease: "expo.inOut" }, 0)
-        // Noir tant qu'il est sur le blanc, blanc dès qu'il passe sur la photo
-        .to(word.current, { color: "#f1f1ef", duration: 0.2, ease: "none" }, 0.5)
         .add(() => html.classList.add("is-landed"))
         .set(el, { opacity: 0 });
     };
