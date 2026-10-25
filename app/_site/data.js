@@ -4,12 +4,10 @@
 // fondu ; tout le reste (portraits, autres paysages, panoramiques) forme la galerie, du plus récent au plus ancien.
 // Un dossier vide ou incomplet garde la sélection d'origine (photos.js).
 // Point d'action facultatif dans le nom du fichier : « ...@60-40.jpg » (60 % depuis la gauche, 40 % depuis le haut).
-// materiel/ : la photo du boîtier et de l'objectif de Matthieu pour l'accueil, la plus récente du dossier. Un PNG est
-// pris pour détouré (fond transparent) : il passe devant le nom. Un JPEG doit être pris sur fond noir.
-// En local, LOCAL_GEAR (chemin sous public/, dossier _local/ jamais versionné) remplace R2 pour les maquettes.
+// Accueil : la photo du matériel de Matthieu, détourée, rangée avec le site (GEAR_PHOTO). Une photo déposée dans
+// materiel/ la remplace (la plus récente) : un PNG est pris pour détouré (fond transparent) et passe devant le nom ;
+// un JPEG doit être pris sur fond noir.
 
-import { readFileSync } from "fs";
-import path from "path";
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
 import { imageSize } from "image-size";
 import { HERO, FOOT, HAND, BASKET, US, EXTRA } from "./photos";
@@ -44,19 +42,12 @@ function fallbackChapter({ fallback, min, folders, ...s }) {
 // Photo du matériel pour l'accueil : { src, w, h, cut } (cut : détourée, fond transparent)
 const gearOf = ({ src, w, h }) => ({ src, w, h, cut: /\.png$/i.test(src) });
 
-function localGear() {
-  const p = process.env.LOCAL_GEAR;
-  if (!p) return null;
-  try {
-    const d = imageSize(readFileSync(path.join(process.cwd(), "public", p)));
-    return gearOf({ src: p, w: d.width, h: d.height });
-  } catch {
-    return null;
-  }
-}
+// Sony α1 II et FE 300 mm F2.8 GM OSS, vus de dessus (photo de Matthieu, détourée avec tools/detoure.swift).
+// Dimensions écrites ici : le serveur ne relit pas public/ une fois en ligne.
+const GEAR_PHOTO = gearOf({ src: "/materiel/alpha1-ii-300mm.png", w: 522, h: 1290 });
 
 function fallbackSite() {
-  return { hero: HERO.map(strip), gear: localGear(), chapters: SPORTS.map(fallbackChapter), source: "selection" };
+  return { hero: HERO.map(strip), gear: GEAR_PHOTO, chapters: SPORTS.map(fallbackChapter), source: "selection" };
 }
 
 function client() {
@@ -138,7 +129,7 @@ export async function getSite() {
     const used = [];
     const heroL = hero.filter(landscape);
     if (heroL.length) { site.hero = heroL; used.push(`hero ${heroL.length}`); }
-    if (gear.length && !site.gear) { site.gear = gearOf(gear[0]); used.push("materiel 1"); }
+    if (gear.length) { site.gear = gearOf(gear[0]); used.push("materiel 1"); }
     site.chapters = SPORTS.map(({ fallback, min, folders, ...s }, k) => {
       const photos = sports[k];
       const wide = photos.filter(landscape);
