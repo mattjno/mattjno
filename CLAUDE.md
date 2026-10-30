@@ -48,6 +48,7 @@ Site portfolio de photographie sportive de Matthieu Jauneau (marque MATTJNO, mat
 - Portraits jamais rognés au repos ; paysages en grille rognés de 4 % au plus (formats de l'appareil). Seul sur sa rangée (téléphone), un paysage garde son format. Visionneuse plein écran au clic : la photo grandit depuis sa vignette, entière.
 - Scènes tenues seulement sur grand écran (`min-width: 1024px` et `min-height: 560px`). La tablette en portrait suit le téléphone.
 - Au doigt (téléphone, tablette), les animations ne suivent pas le défilement : l'élan les ferait passer en un éclair. L'ouverture se joue d'elle-même en 1,3 s dès que la fenêtre est à l'écran, et se referme si l'on remonte. Rangées basket et galerie handball entrent en cascade.
+- Entrées au défilement (`arrive`) : tout élément encore sous l'écran est caché dès le chargement, puis entre à son déclencheur ; ce qui est déjà à l'écran ou au-dessus reste visible (page rechargée en cours de lecture). Ne jamais cacher un élément au moment où il entre (`fromTo` dans `onEnter` seul) : au doigt, l'élan l'amène à l'écran avant le déclencheur, la photo apparaît puis disparaît pour entrer (signalé par Matthieu le 30/10/2026).
 - Mouvement réduit (réglage du système) : apparitions en fondu, aucun déplacement.
 - À partir de 1 700 px : 5 colonnes (football, basket, mosaïque). La galerie est rangée à nouveau pour chaque nombre de colonnes ; trop peu de photos pour une rangée complète : moins de colonnes.
 

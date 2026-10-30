@@ -313,6 +313,27 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
     const ctx = gsap.context(() => {
       const q = gsap.utils.selector(root);
 
+      // Entrées au défilement. Un élément encore sous l'écran est caché tout de suite : on ne le voit jamais avant son
+      // entrée (au doigt, l'élan l'amenait à l'écran avant le déclencheur, il apparaissait puis disparaissait pour
+      // entrer). Un élément déjà à l'écran ou au-dessus reste tel quel (page rechargée en cours de lecture).
+      // Les éléments qui entrent ensemble partent en cascade. show reçoit leur liste.
+      const arrive = (triggers, { start = "top 94%", hide, show }) => {
+        let queue = [];
+        const flush = () => { const batch = queue; queue = []; ctx.add(() => show(batch)); };
+        [...triggers].forEach((el) => {
+          if (el.getBoundingClientRect().top < window.innerHeight) return;
+          hide(el);
+          let done = false;
+          const go = () => {
+            if (done) return;
+            done = true;
+            if (!queue.length) Promise.resolve().then(flush);
+            queue.push(el);
+          };
+          ScrollTrigger.create({ trigger: el, start, once: true, onEnter: go, onRefresh: (self) => self.progress > 0 && go() });
+        });
+      };
+
       // ---------- Bandeau : discret en descendant, revient en remontant, chapitre en cours souligné ----------
       ScrollTrigger.create({
         start: 0,
@@ -333,9 +354,9 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
       // Mouvement réduit : pas de déplacement, seulement des apparitions en fondu (les ouvertures, déjà ouvertes, gardent leurs fondus)
       if (reduce) {
         q(".ch-open").forEach((open) => watch(open).open(true));
-        ScrollTrigger.batch(q(".fg-item, .ro-item, .mo-item, .sg-item, .ch-text"), {
-          start: "top 92%", once: true,
-          onEnter: (batch) => gsap.fromTo(batch, { opacity: 0 }, { opacity: 1, duration: 0.6, stagger: 0.05, ease: "power1.out" }),
+        arrive(q(".fg-item, .ro-item, .mo-item, .sg-item, .ch-text"), {
+          hide: (el) => gsap.set(el, { opacity: 0 }),
+          show: (batch) => gsap.fromTo(batch, { opacity: 0 }, { opacity: 1, duration: 0.6, stagger: 0.05, ease: "power1.out" }),
         });
         return;
       }
@@ -404,9 +425,12 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
 
         // Football : les photos montent dans leur cadre en arrivant
         if (ch.kind === "grid") {
-          ScrollTrigger.batch(section.querySelectorAll(".fg-item"), {
-            start: "top 92%", once: true,
-            onEnter: (batch) => {
+          arrive(section.querySelectorAll(".fg-item"), {
+            hide: (el) => {
+              gsap.set(el.querySelector(".fg-frame"), { clipPath: "inset(100% 0% 0% 0%)" });
+              gsap.set(el.querySelector(".pf-fill"), { scale: 1.2 });
+            },
+            show: (batch) => {
               gsap.fromTo(batch.map((b) => b.querySelector(".fg-frame")), { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.2, stagger: 0.08, ease: "expo.out" });
               gsap.fromTo(batch.map((b) => b.querySelector(".pf-fill")), { scale: 1.2 }, { scale: 1, duration: 1.5, stagger: 0.08, ease: "expo.out" });
             },
@@ -430,9 +454,9 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
         // Handball au doigt : les photos entrent en cascade depuis la droite
         if (ch.kind === "side" && !wide) {
           const items = section.querySelectorAll(".sg-item");
-          ScrollTrigger.create({
-            trigger: section.querySelector(".sg"), start: "top 80%", once: true,
-            onEnter: () => gsap.fromTo(items, { x: 80, opacity: 0 }, { x: 0, opacity: 1, duration: 1, stagger: 0.08, ease: "expo.out" }),
+          arrive([section.querySelector(".sg-track")], {
+            hide: () => gsap.set(items, { x: 80, opacity: 0 }),
+            show: () => gsap.fromTo(items, { x: 80, opacity: 0 }, { x: 0, opacity: 1, duration: 1, stagger: 0.08, ease: "expo.out" }),
           });
         }
 
@@ -446,27 +470,36 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
             if (last && Math.abs(last.top - el.offsetTop) < 4) last.items.push(el);
             else rows.push({ top: el.offsetTop, items: [el] });
           });
+          const away = new Map(); // première photo d'une rangée → la rangée et son côté de départ
           rows.forEach(({ items }, r) => {
             const d = r % 2 === 0 ? -1 : 1;
+            away.set(items[0], { items, from: () => ({ x: d * 0.3 * grid.clientWidth, opacity: 0 }) });
             if (wide) {
               gsap.fromTo(items, { x: () => d * 0.38 * grid.clientWidth }, {
                 x: 0, ease: "none",
                 scrollTrigger: { trigger: items[0], start: "top bottom", end: "top 40%", scrub: true, invalidateOnRefresh: true },
               });
-            } else {
-              ScrollTrigger.create({
-                trigger: items[0], start: "top 88%", once: true,
-                onEnter: () => gsap.fromTo(items, { x: () => d * 0.3 * grid.clientWidth, opacity: 0 }, { x: 0, opacity: 1, duration: 1, ease: "expo.out" }),
-              });
             }
           });
+          if (!wide) {
+            arrive(away.keys(), {
+              hide: (el) => gsap.set(away.get(el).items, away.get(el).from()),
+              show: (batch) => batch.forEach((el, i) => {
+                const { items, from } = away.get(el);
+                gsap.fromTo(items, from(), { x: 0, opacity: 1, duration: 1, delay: i * 0.08, ease: "expo.out" });
+              }),
+            });
+          }
         }
 
         // Football américain : la mosaïque s'ouvre depuis le centre de chaque cadre
         if (ch.kind === "mosaic") {
-          ScrollTrigger.batch(section.querySelectorAll(".mo-item"), {
-            start: "top 90%", once: true,
-            onEnter: (batch) => {
+          arrive(section.querySelectorAll(".mo-item"), {
+            hide: (el) => {
+              gsap.set(el.querySelector(".mo-frame"), { clipPath: "inset(50% 50% 50% 50%)" });
+              gsap.set(el.querySelector(".pf-fill"), { scale: 1.3 });
+            },
+            show: (batch) => {
               gsap.fromTo(batch.map((b) => b.querySelector(".mo-frame")), { clipPath: "inset(50% 50% 50% 50%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.2, stagger: 0.09, ease: "expo.out" });
               gsap.fromTo(batch.map((b) => b.querySelector(".pf-fill")), { scale: 1.3 }, { scale: 1, duration: 1.6, stagger: 0.09, ease: "expo.out" });
             },
@@ -474,10 +507,11 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
         }
       });
 
-      // ---------- Contact : visible tant qu'il n'est pas atteint, puis arrive en cascade ----------
-      ScrollTrigger.create({
-        trigger: q(".kc")[0], start: "top 85%", once: true,
-        onEnter: () => gsap.fromTo(q(".kc-intro > *, .kc-form > *"), { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, stagger: 0.06, ease: "expo.out" }),
+      // ---------- Contact : arrive en cascade ----------
+      const kc = q(".kc-intro > *, .kc-form > *");
+      arrive([q(".kc")[0]], {
+        hide: () => gsap.set(kc, { y: 24, opacity: 0 }),
+        show: () => gsap.fromTo(kc, { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, stagger: 0.06, ease: "expo.out" }),
       });
     }, root);
 
