@@ -334,13 +334,13 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
         });
       };
 
-      // ---------- Bandeau : toujours visible (ancré en haut), fond noir hors de l'accueil, chapitre en cours souligné ----------
+      // ---------- Bandeau : toujours visible (ancré en haut), transparent, noir au survol ; chapitre en cours souligné ----------
       ScrollTrigger.create({
         start: 0,
         end: "max",
         onUpdate: (self) => {
           const past = self.scroll() > window.innerHeight * 0.6;
-          nav.classList.toggle("is-solid", past);
+          nav.classList.toggle("is-past", past);
         },
       });
       [...CHAPTERS.map((c) => c.id), "contact"].forEach((id) => {

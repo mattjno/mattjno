@@ -97,9 +97,22 @@ html.lenis, html.lenis body { height: auto; }
 @keyframes pf-rise-go { to { opacity: 1; transform: none; } }
 
 /* ---------- Bandeau : discret en descendant, revient en remontant ---------- */
-/* Bandeau ancré : toujours visible, pour changer de sport ou remonter à tout moment (demande du 30/10/2026) */
+/* Bandeau ancré : toujours visible, pour changer de sport ou remonter à tout moment (demande du 30/10/2026).
+   Transparent ; noir au passage de la souris ou quand un lien a le focus clavier (pas après un simple clic). Hors de l'accueil (qui a son propre
+   voile), un voile sombre léger, effacé vers le bas, garde les liens lisibles sur les photos claires. */
 .pf-nav { transition: background-color 300ms ease; }
-.pf-nav.is-solid { background-color: var(--bg); }
+.pf-nav::before {
+  content: ""; position: absolute; inset: 0 0 -48px 0; z-index: -1; pointer-events: none;
+  background: rgba(8, 8, 8, 0.5); opacity: 0; transition: opacity 300ms ease;
+  mask-image: linear-gradient(to bottom, #000 35%, transparent); -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent);
+} /* taste-skill-ignore: voile neutre sous le bandeau, pour la lisibilité */
+.pf-nav.is-past::before { opacity: 1; }
+.pf-nav:has(:focus-visible) { background-color: var(--bg); }
+.pf-nav:has(:focus-visible)::before { opacity: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .pf-nav:hover { background-color: var(--bg); }
+  .pf-nav:hover::before { opacity: 0; }
+}
 .pf-links button[aria-current]::after { transform: scaleX(1); transform-origin: left; }
 .pf-menu-btn { display: none; background: none; border: 0; padding: 6px 0; cursor: pointer; font-size: var(--t-small); font-weight: 500; color: inherit; }
 @media (max-width: 759px) {
