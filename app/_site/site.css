@@ -63,7 +63,11 @@ html.lenis, html.lenis body { height: auto; }
 .p-hero__scrim { position: absolute; inset: auto 0 0 0; height: 55%; background: rgba(8, 8, 8, 0.45); pointer-events: none; mask-image: linear-gradient(to top, #000 30%, transparent); -webkit-mask-image: linear-gradient(to top, #000 30%, transparent); } /* taste-skill-ignore: scrim neutre sous le titre */
 .p-hero__dim { position: absolute; inset: 0; background: var(--bg); opacity: 0; pointer-events: none; }
 .p-hero__text { position: absolute; left: var(--margin); right: var(--margin); bottom: clamp(24px, 6vh, 64px); }
-.p-hero__title { font-weight: 700; font-size: var(--t-display); line-height: 0.84; letter-spacing: -0.055em; text-transform: uppercase; }
+.p-hero__title { font-weight: 700; font-size: var(--t-display); line-height: 0.84; letter-spacing: -0.055em; text-transform: uppercase; white-space: nowrap; }
+/* MATT JNO sur une seule ligne (demande de Matthieu, 30/10/2026) ; les deux mots se lèvent l'un après l'autre */
+.p-hero__title .p-mask { display: inline-block; vertical-align: top; }
+/* Téléphone : le nom prend toute la largeur sans déborder (MATT JNO mesure 4,55 em) */
+@media (max-width: 759px) { .p-hero__title { font-size: calc((100vw - 2 * var(--margin)) / 4.6); } }
 .p-hero__sub { margin-top: 18px; font-size: var(--t-lead); font-weight: 500; letter-spacing: -0.01em; }
 @media (prefers-reduced-motion: reduce) { .p-hero__slide.is-active .p-hero__img { animation: none; } }
 

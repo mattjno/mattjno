@@ -707,7 +707,7 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
           <div className="p-hero__dim" />
           <div className="p-hero__text">
             <h1 className="p-hero__title">
-              <span className="p-mask"><span style={{ "--i": 0 }}>Matt</span></span>
+              <span className="p-mask"><span style={{ "--i": 0 }}>Matt</span></span>{" "}
               <span className="p-mask"><span style={{ "--i": 1 }}>Jno</span></span>
             </h1>
             <p className="p-hero__sub">Sports Photographer</p>
