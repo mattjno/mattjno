@@ -30,7 +30,7 @@ Site portfolio de photographie sportive de Matthieu Jauneau (marque MATTJNO, mat
 ## Direction de la refonte (validée par Matthieu)
 - Fond noir, accent blanc, rendu premium et simple. Référence : konradborzy.com/portfolio.
 - Une seule police sur tout le site : Instrument Sans, déclinée en graisses, interlettrage resserré sur les gros titres.
-- Plus d'albums par match. Page unique déroulante, bandeau de navigation fixe en haut, liens qui font défiler vers les sections.
+- Plus d'albums par match. Page unique déroulante, bandeau de navigation fixe en haut, liens qui font défiler vers les sections. Bandeau ancré, toujours visible, fond noir hors de l'accueil (30/10/2026 : se cacher en descendant n'était pas intuitif pour remonter). MATT.JNO ramène en haut ; le menu du téléphone commence par « Accueil ».
 - Hero plein écran : photos paysage en fondu enchaîné, alimentées par un dossier R2. « MATTJNO » sur une ligne en bas à gauche, « Sports Photographer » en petit juste au-dessus, comme konradborzy.com (26/10/2026), sans légende ni accroche.
 - Section "PORTFOLIO" : grille de portraits verticaux 4:5, cadre blanc au survol, alimentée par un dossier R2.
 - Fin de page : contact.

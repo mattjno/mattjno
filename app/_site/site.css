@@ -97,9 +97,9 @@ html.lenis, html.lenis body { height: auto; }
 @keyframes pf-rise-go { to { opacity: 1; transform: none; } }
 
 /* ---------- Bandeau : discret en descendant, revient en remontant ---------- */
-.pf-nav { transition: transform 450ms var(--ease-out), background-color 300ms ease; }
+/* Bandeau ancré : toujours visible, pour changer de sport ou remonter à tout moment (demande du 30/10/2026) */
+.pf-nav { transition: background-color 300ms ease; }
 .pf-nav.is-solid { background-color: var(--bg); }
-.pf-nav.is-hidden { transform: translateY(-100%); }
 .pf-links button[aria-current]::after { transform: scaleX(1); transform-origin: left; }
 .pf-menu-btn { display: none; background: none; border: 0; padding: 6px 0; cursor: pointer; font-size: var(--t-small); font-weight: 500; color: inherit; }
 @media (max-width: 759px) {

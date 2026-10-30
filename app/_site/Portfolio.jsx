@@ -334,14 +334,13 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
         });
       };
 
-      // ---------- Bandeau : discret en descendant, revient en remontant, chapitre en cours souligné ----------
+      // ---------- Bandeau : toujours visible (ancré en haut), fond noir hors de l'accueil, chapitre en cours souligné ----------
       ScrollTrigger.create({
         start: 0,
         end: "max",
         onUpdate: (self) => {
           const past = self.scroll() > window.innerHeight * 0.6;
           nav.classList.toggle("is-solid", past);
-          nav.classList.toggle("is-hidden", past && self.direction === 1);
         },
       });
       [...CHAPTERS.map((c) => c.id), "contact"].forEach((id) => {
@@ -637,9 +636,9 @@ export default function Portfolio({ hero: HERO, chapters: CHAPTERS }) {
             <button onClick={() => setMenu(false)}>Fermer</button>
           </div>
           <ul className="pf-menu__list">
-            {LINKS.map((l) => (
+            {[{ id: "top", full: "Accueil" }, ...LINKS].map((l) => (
               <li key={l.id}>
-                <button className="pf-menu__link" onClick={() => menuGo(l.id)} aria-current={active === l.id ? "true" : undefined}>
+                <button className="pf-menu__link" onClick={() => menuGo(l.id)} aria-current={(l.id === "top" ? active === null : active === l.id) ? "true" : undefined}>
                   <span>{l.full}</span>
                 </button>
               </li>
