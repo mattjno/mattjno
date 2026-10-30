@@ -2,7 +2,8 @@
 // basketball/, football-americain/. Matthieu dépose ses exports sans les renommer ; le site lit lui-même leurs
 // dimensions. Dans un dossier sport : les 4 paysages les plus récents (hors panoramiques) ouvrent le chapitre en
 // fondu ; tout le reste (portraits, autres paysages, panoramiques) forme la galerie, du plus récent au plus ancien.
-// Un dossier vide ou incomplet garde la sélection d'origine (photos.js).
+// Un dossier vide ou incomplet garde la sélection d'origine (photos.js). Dossier hero/ vide : l'accueil tire au
+// hasard des paysages des dossiers sport.
 // Point d'action facultatif dans le nom du fichier : « ...@60-40.jpg » (60 % depuis la gauche, 40 % depuis le haut).
 
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -108,6 +109,31 @@ async function folder(c, prefix) {
 
 const landscape = (p) => p.w > p.h * 1.1;
 
+// Hero de l'accueil quand le dossier hero/ est vide : des paysages des sports tirés au hasard
+const HERO_COUNT = 6;
+const shuffle = (a) => {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+// Un paysage plein écran : pas de panoramique (trop rogné), au moins 3 000 px de large s'il y en a assez.
+// La photo qui ouvre chaque chapitre est écartée, pour ne pas la voir deux fois en haut de page.
+// Les sports alternent, dans un ordre tiré au hasard : l'accueil montre plusieurs sports.
+function randomHero(sports, chapters) {
+  const openers = new Set(chapters.map((ch) => ch.slides[0]?.src));
+  const fit = (min) => sports.map((photos) => photos.filter((p) => landscape(p) && p.w / p.h < 2 && p.w >= min && !openers.has(p.src)));
+  const sharp = fit(3000);
+  const pools = shuffle((sharp.flat().length >= 3 ? sharp : fit(0)).map((p) => shuffle([...p]))).filter((p) => p.length);
+  const pick = [];
+  while (pick.length < HERO_COUNT && pools.some((p) => p.length)) {
+    for (const p of pools) if (p.length && pick.length < HERO_COUNT) pick.push(p.shift());
+  }
+  return pick;
+}
+
 export async function getSite() {
   const site = fallbackSite();
   const c = client();
@@ -118,7 +144,7 @@ export async function getSite() {
     const [hero, ...sports] = await Promise.all([["hero"], ...SPORTS.map((s) => s.folders || [s.id])].map(read));
     const used = [];
     const heroL = hero.filter(landscape);
-    if (heroL.length) { site.hero = heroL; used.push(`hero ${heroL.length}`); }
+    if (heroL.length) { site.hero = heroL.map(strip); used.push(`hero ${heroL.length}`); }
     site.chapters = SPORTS.map(({ fallback, min, folders, ...s }, k) => {
       const photos = sports[k];
       const wide = photos.filter(landscape);
@@ -132,6 +158,11 @@ export async function getSite() {
       }
       return site.chapters[k];
     });
+    // hero/ vide : paysages des sports au hasard, nouveau tirage à chaque régénération de la page (5 min au plus)
+    if (!heroL.length) {
+      const pick = randomHero(sports, site.chapters);
+      if (pick.length) { site.hero = pick.map(strip); used.push(`hero au hasard ${pick.length}`); }
+    }
     site.source = used.length ? `r2 (${used.join(", ")})` : "selection";
   } catch (e) {
     console.error("R2 : lecture impossible, sélection d'origine affichée.", e?.name, e?.message);
