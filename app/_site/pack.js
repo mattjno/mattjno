@@ -11,8 +11,21 @@ export function span({ w, h }) {
   return 0;
 }
 
+// Photos qui remplissent exactement `room` cases, prises parmi les premières de la file : la combinaison qui garde
+// le plus l'ordre (les plus récentes d'abord). Renvoie leurs positions dans la file, ou null.
+const LOOK = 10;
+function fill(queue, room, from = 0) {
+  if (room === 0) return [];
+  for (let k = from; k < Math.min(queue.length, LOOK); k++) {
+    if (queue[k].s > room) continue;
+    const rest = fill(queue, room - queue[k].s, k + 1);
+    if (rest) return [k, ...rest];
+  }
+  return null;
+}
+
 // Range les photos en rangées complètes de `cols` cases, dans l'ordre reçu (les plus récentes d'abord).
-// Quand une photo ne tient pas dans la place restante d'une rangée, la suivante qui tient passe devant.
+// Quand une photo ne tient pas dans la place restante d'une rangée, une suivante qui complète la rangée passe devant.
 // Une rangée impossible à compléter n'est pas affichée. Sur deux colonnes, paysages et panoramiques prennent
 // la rangée entière. feature : la mosaïque ouvre sur un portrait de 2 × 2 cases (une rangée sur téléphone).
 export function pack(list, cols, { rows = Infinity, feature = false } = {}) {
@@ -26,17 +39,11 @@ export function pack(list, cols, { rows = Infinity, feature = false } = {}) {
     if (cols < 4) r = 1;
   }
   for (; r < rows; r++) {
-    let room = feature && cols >= 4 && r < 2 ? cols - 2 : cols;
-    const row = [];
-    while (room > 0) {
-      const k = queue.findIndex((x) => x.s <= room);
-      if (k < 0) break;
-      const x = queue.splice(k, 1)[0];
-      row.push(x);
-      room -= x.s;
-    }
-    if (room > 0) break;
-    out.push(...row);
+    const room = feature && cols >= 4 && r < 2 ? cols - 2 : cols;
+    const picks = fill(queue, room);
+    if (!picks) break;
+    out.push(...picks.map((k) => queue[k]));
+    for (let j = picks.length - 1; j >= 0; j--) queue.splice(picks[j], 1);
   }
   // La grande case de la mosaïque couvre deux rangées : elles doivent être complètes toutes les deux
   if (feature && cols >= 4 && r < 2) return [];
