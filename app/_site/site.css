@@ -172,16 +172,6 @@ html.lenis, html.lenis body { height: auto; }
   .mo-feature .mo-frame { aspect-ratio: 3 / 4; flex: none; }
 }
 
-/* ---------- Football : le but ----------
-   Un ballon dessiné, invisible au repos, file vers la lucarne de la grille. Avant le tir, les photos du premier
-   écran sont voilées de noir (variable --veil, posée par le script : sans lui, rien n'est voilé). Le ballon est
-   dessiné à 400 px et toujours réduit, pour rester net. */
-.fg { position: relative; overflow: clip; }
-.fg-ball { position: absolute; left: 0; top: 0; z-index: 3; width: 400px; height: 400px; opacity: 0; pointer-events: none; transform-origin: 50% 50%; }
-.fg-ball svg { display: block; width: 100%; height: 100%; }
-.fg-frame::before { content: ""; position: absolute; inset: 0; z-index: 1; background: #000; opacity: var(--veil, 0); pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { .fg-ball { display: none; } }
-
 /* ---------- Handball : galerie latérale, à la taille des autres grilles ---------- */
 .sg { position: relative; }
 .sg-stage { padding: clamp(72px, 10vh, 120px) 0 clamp(48px, 8vh, 96px); }
